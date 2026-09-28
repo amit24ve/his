@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.venv/
+venv/
+env/
+.env
+.env.*
+
+# Credentials & Secrets
+app/credentials/google_service_account.json
+app/credentials/*.json
+*.pem
+*.key
+*.crt
+.codex-backups/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.npm/
+
+# Uploads & Generated files
+uploads/
+uploaded_pdfs/
+pdfs/
+app/pdfs/
+static/franchise_docs/
+static/kyc_document/
+static/pdfs/
+employee_document/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Database
+*.db
+*.sqlite3
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage

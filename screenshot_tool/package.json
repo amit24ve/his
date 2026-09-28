@@ -1,0 +1,13 @@
+{
+  "name": "his-screenshot-tool",
+  "version": "1.0.0",
+  "description": "CubeMed HIS UI Screenshot Tool",
+  "main": "capture.js",
+  "scripts": {
+    "capture": "node capture.js",
+    "build-pdf": "node build_pdf.js"
+  },
+  "dependencies": {
+    "puppeteer-core": "^21.0.0"
+  }
+}

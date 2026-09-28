@@ -1,0 +1,185 @@
+
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+            padding-top: 56px; /* Account for fixed navbar */
+        }
+
+        .feature-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+        }
+
+        .card {
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .bg-primary {
+            background-color: var(--primary) !important;
+        }
+
+        .border-left-primary {
+            border-left: 0.25rem solid var(--primary);
+        }
+
+        .border-left-success {
+            border-left: 0.25rem solid var(--success);
+        }
+
+        .border-left-info {
+            border-left: 0.25rem solid var(--info);
+        }
+
+        .border-left-warning {
+            border-left: 0.25rem solid var(--warning);
+        }
+
+        .auth-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .card.shadow {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+        }
+
+        .navbar-dark .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .navbar-dark .navbar-nav .nav-link:hover {
+            color: #fff;
+        }
+
+        .section {
+            display: none; /* Hide all sections by default */
+            padding: 40px 0;
+        }
+
+        .section.active {
+            display: block; /* Show only active section */
+        }
+
+        #dashboard-section {
+            background-color: #f8f9fc;
+            min-height: calc(100vh - 56px);
+        }
+
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #4e73df;
+            background-image: linear-gradient(180deg,#4e73df 10%,#224abe 100%);
+            background-size: cover;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255,255,255,.8);
+            padding: 1rem;
+        }
+
+        .sidebar .nav-link:hover {
+            color: #fff;
+        }
+
+        .sidebar .nav-link.active {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .sidebar-heading {
+            color: rgba(255,255,255,.4);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 1rem;
+        }
+
+        .topbar {
+            height: 4.375rem;
+        }
+
+        #main-content {
+            min-height: calc(100vh - 56px);
+        }
+        
+        /* Current datetime display */
+        #current-datetime {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8rem;
+            margin-bottom: 0;
+            padding: 0.5rem;
+        }
+        
+        /* Fixed authenticated nav display */
+        #authenticated-nav {
+            width: 100%;
+            display: none;
+        }
+        
+        #authenticated-nav.active {
+            display: flex;
+        }
+
+        /* Role Management Styles */
+        .role-card {
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .role-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        /* Animation for loading state */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }

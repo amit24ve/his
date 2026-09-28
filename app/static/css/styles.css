@@ -1,0 +1,331 @@
+
+
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fc;
+            color: #333;
+            padding-top: 56px;
+        }
+
+        .main-content {
+            padding-top: 20px;
+        }
+
+        .page-header {
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e3e6f0;
+            padding-bottom: 1rem;
+        }
+
+        /* Integration cards */
+        .integration-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+
+        .integration-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.25);
+        }
+
+        .integration-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        /* Tables */
+        .table th {
+            font-weight: 600;
+            border-top: none;
+        }
+
+        .table thead th {
+            background-color: rgba(78, 115, 223, 0.05);
+            border-bottom: 1px solid #e3e6f0;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(78, 115, 223, 0.05);
+        }
+
+        /* Source badges */
+        .source-badge {
+            font-size: 0.7rem;
+            padding: 0.25em 0.6em;
+            font-weight: 600;
+            border-radius: 0.25rem;
+        }
+
+        .source-badge-google {
+            background-color: #34A853;
+            color: white;
+        }
+
+        .source-badge-meta {
+            background-color: #1877F2;
+            color: white;
+        }
+
+        /* Empty state styles */
+        .empty-state {
+            padding: 3rem 1rem;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            color: var(--secondary);
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        /* Loaders */
+        .loading-spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 0.15em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-animation 0.75s linear infinite;
+            display: inline-block;
+            vertical-align: text-bottom;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spinner-animation {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Form styles */
+        .mapping-row {
+            position: relative;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.3s;
+        }
+
+        .mapping-row:hover {
+            background-color: rgba(78, 115, 223, 0.05);
+        }
+
+        .remove-mapping-btn:hover {
+            background-color: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        /* Pagination styling */
+        .pagination-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Auth indicator */
+        .auth-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .auth-connected {
+            background-color: var(--success);
+        }
+
+        .auth-disconnected {
+            background-color: var(--danger);
+        }
+
+        /* Status badges */
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25em 0.7em;
+            font-weight: 600;
+            border-radius: 1rem;
+        }
+
+        .status-active {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .status-error {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .status-inactive {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        /* Toast customization */
+        .toast-container {
+            z-index: 1060;
+        }
+
+        /* Date format */
+        .date-display {
+            white-space: nowrap;
+        }
+
+        /* Assignment badge styles */
+        .badge.bg-info {
+                background-color: var(--info) !important;
+            }
+
+        /* Filter section styling */
+        .filter-section {
+                background: #f8f9fc;
+                padding: 15px;
+                border-radius: 5px;
+                margin-bottom: 15px;
+                box-shadow: 0 0.125rem 0.25rem rgba(58, 59, 69, 0.1);
+            }
+
+        /* Assignment button styling */
+        .assign-lead-btn {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .assign-lead-btn:hover {
+            background-color: var(--success);
+            color: white;
+        }
+        .lead-details-modal .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Unassigned text styling */
+        .text-muted {
+            color: #858796 !important;
+        }
+
+        .lead-field-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .lead-field-value {
+            word-break: break-word;
+        }
+        .lead-detail-row {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.lead-detail-row:last-child {
+    border-bottom: none;
+}
+
+/* Table updates for assignment column */
+#leads-table th:nth-last-child(2),
+#leads-table td:nth-last-child(2) {
+    min-width: 120px;
+}
+
+/* Row priority markers */
+.lead-high-priority {
+    border-left: 4px solid var(--danger);
+}
+
+.lead-medium-priority {
+    border-left: 4px solid var(--warning);
+}
+
+.lead-low-priority {
+    border-left: 4px solid var(--info);
+}
+
+        /* Lead priority indicators */
+        .lead-priority-high {
+            border-left: 4px solid var(--danger);
+        }
+
+        .lead-detail-row {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .lead-priority-medium {
+            border-left: 4px solid var(--warning);
+        }
+
+        .lead-priority-low {
+            border-left: 4px solid var(--info);
+        }
+
+        /* Lead management styles */
+.badge.bg-info {
+    background-color: var(--info) !important;
+}
+
+.filter-section {
+    background: #f8f9fc;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    box-shadow: 0 0.125rem 0.25rem rgba(58, 59, 69, 0.1);
+}
+
+.assign-lead-btn {
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.assign-lead-btn:hover {
+    background-color: var(--success);
+    color: white;
+}
+
+.lead-details-modal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.lead-field-name {
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.lead-field-value {
+    word-break: break-word;
+}
+
+.lead-detail-row {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.lead-detail-row:last-child {
+    border-bottom: none;
+}
+
+        /* Lead row hover effect */
+        #leads-table tbody tr:hover {
+            background-color: rgba(78, 115, 223, 0.05);
+            cursor: pointer;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .table-responsive {
+                font-size: 0.85rem;
+            }
+            
+            .main-content {
+                padding-top: 10px;
+            }
+            
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+        }

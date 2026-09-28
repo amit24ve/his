@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2B CRM - Lead Integrations</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+    --primary: #4e73df;
+    --primary-dark: #2e59d9;
+    --secondary: #858796;
+    --success: #1cc88a;
+    --info: #36b9cc;
+    --warning: #f6c23e;
+    --danger: #e74a3b;
+    --light: #f8f9fc;
+    --dark: #5a5c69;
+}
+
+body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9fc;
+    color: #333;
+    padding-top: 56px;
+}
+
+.main-content {
+    padding-top: 20px;
+}
+
+.page-header {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e3e6f0;
+    padding-bottom: 1rem;
+}
+
+/* Integration cards */
+.integration-card {
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.integration-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.25);
+}
+
+.integration-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* Tables */
+.table th {
+    font-weight: 600;
+    border-top: none;
+}
+
+.table thead th {
+    background-color: rgba(78, 115, 223, 0.05);
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(78, 115, 223, 0.05);
+}
+
+/* Source badges */
+.source-badge {
+    font-size: 0.7rem;
+    padding: 0.25em 0.6em;
+    font-weight: 600;
+    border-radius: 0.25rem;
+}
+
+.source-badge-google {
+    background-color: #34A853;
+    color: white;
+}
+
+.source-badge-meta {
+    background-color: #1877F2;
+    color: white;
+}
+
+/* Empty state styles */
+.empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    color: var(--secondary);
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+/* Loaders */
+.loading-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 0.15em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-animation 0.75s linear infinite;
+    display: inline-block;
+    vertical-align: text-bottom;
+    margin-right: 0.5rem;
+}
+
+@keyframes spinner-animation {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Form styles */
+.mapping-row {
+    position: relative;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.3s;
+}
+
+.mapping-row:hover {
+    background-color: rgba(78, 115, 223, 0.05);
+}
+
+.remove-mapping-btn:hover {
+    background-color: var(--danger);
+    color: white;
+    border-color: var(--danger);
+}
+
+/* Pagination styling */
+.pagination-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Auth indicator */
+.auth-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.auth-connected {
+    background-color: var(--success);
+}
+
+.auth-disconnected {
+    background-color: var(--danger);
+}
+
+/* Status badges */
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.7em;
+    font-weight: 600;
+    border-radius: 1rem;
+}
+
+.status-active {
+    background-color: var(--success);
+    color: white;
+}
+
+.status-error {
+    background-color: var(--danger);
+    color: white;
+}
+
+.status-inactive {
+    background-color: var(--secondary);
+    color: white;
+}
+
+/* Toast customization */
+.toast-container {
+    z-index: 1060;
+}
+
+/* Date format */
+.date-display {
+    white-space: nowrap;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+    
+    .main-content {
+        padding-top: 10px;
+    }
+    
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+}
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-project-diagram me-2"></i>
+                B2B CRM
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="dashboard-link">
+                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="leads-link">
+                            <i class="fas fa-users me-1"></i> Leads
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" id="integrations-link">
+                            <i class="fas fa-plug me-1"></i> Integrations
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item me-3">
+                        <div class="d-flex flex-column align-items-end">
+                            <p id="current-datetime" class="my-1 text-light">2025-06-03 13:16:28</p>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="user-name-display" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i> <span id="user-name">soheru</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logout-btn"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container main-content mt-5 pt-3">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center page-header">
+                    <h1 class="h3">Lead Integrations</h1>
+                    <div>
+                        <button id="refresh-leads-btn" class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh Data
+                        </button>
+                        <button id="new-integration-btn" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i> New Integration
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Cards -->
+        <div class="row mb-4">
+            <div class="col-md-6 mb-4">
+                <div class="card integration-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="integration-icon bg-primary text-white">
+                                <i class="fas fa-table"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="card-title mb-0">Google Sheets Integration</h5>
+                                <p class="text-muted small mb-0">Import leads from Google Sheets</p>
+                            </div>
+                        </div>
+                        <p class="card-text">Connect your Google Sheets to automatically import leads. Map columns to lead fields and schedule regular imports.</p>
+                        <button id="sheets-integration-btn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plug me-1"></i> Configure
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card integration-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="integration-icon bg-primary text-white">
+                                <i class="fab fa-facebook"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="card-title mb-0">Meta Ads Integration</h5>
+                                <p class="text-muted small mb-0">Import leads from Facebook & Instagram</p>
+                            </div>
+                        </div>
+                        <p class="card-text">Connect your Meta Ads account to automatically import leads from Lead Generation campaigns on Facebook and Instagram.</p>
+                        <button id="meta-integration-btn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plug me-1"></i> Configure
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Statistics -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Lead Sources Statistics</h5>
+                        <span class="badge bg-primary" id="total-sources-badge">0 Sources</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Source Name</th>
+                                        <th>Type</th>
+                                        <th>Total Leads</th>
+                                        <th>Last Sync</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sources-table-body">
+                                    <!-- Sources will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="no-sources-message" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i> No lead sources configured yet.
+                        </div>
+                        <div id="sources-loading" class="text-center py-4 d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading lead sources...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Leads -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Leads</h5>
+                        <div>
+                            <select id="source-filter" class="form-select form-select-sm d-inline-block me-2" style="width: auto;">
+                                <option value="">All Sources</option>
+                            </select>
+                            <span class="badge bg-primary" id="total-leads-badge">0 Leads</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Source</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leads-table-body">
+                                    <!-- Leads will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="no-leads-message" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i> No leads found.
+                        </div>
+                        <div id="leads-loading" class="text-center py-4 d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading leads...</p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <span class="text-muted">Showing <span id="page-info">0-0 of 0</span> leads</span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button id="prev-page-btn" class="btn btn-sm btn-outline-secondary me-2" disabled>
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                                <button id="next-page-btn" class="btn btn-sm btn-outline-secondary">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Sheets Integration Modal -->
+    <div class="modal fade" id="google-sheets-modal" tabindex="-1" aria-labelledby="googleSheetsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="googleSheetsModalLabel">Google Sheets Integration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="google-sheets-form">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Make sure your Google Sheet is shared with the service account email.
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="spreadsheet-url" class="form-label">Google Sheets URL</label>
+                            <input type="text" class="form-control" id="spreadsheet-url" 
+                                placeholder="https://docs.google.com/spreadsheets/d/...">
+                            <div class="form-text">Paste the full URL of your Google Sheet</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sheet-name" class="form-label">Sheet Name</label>
+                                <input type="text" class="form-control" id="sheet-name" value="Sheet1">
+                                <div class="form-text">Name of the sheet tab</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="header-row" class="form-label">Header Row</label>
+                                <input type="number" class="form-control" id="header-row" value="1" min="1">
+                                <div class="form-text">Row number containing column headers</div>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-3">Field Mapping</h6>
+                        <p class="text-muted small mb-3">Map your Google Sheet columns to lead fields</p>
+
+                        <div class="mapping-container">
+                            <div class="mapping-row mb-2">
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <select class="form-select mapping-field">
+                                            <option value="full_name">Full Name</option>
+                                            <option value="email">Email</option>
+                                            <option value="phone">Phone</option>
+                                            <option value="company">Company</option>
+                                            <option value="address">Address</option>
+                                            <option value="city">City</option>
+                                            <option value="state">State</option>
+                                            <option value="country">Country</option>
+                                            <option value="zip_code">Zip Code</option>
+                                            <option value="notes">Notes</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control mapping-column" placeholder="Sheet Column Name">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-outline-danger remove-mapping-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="button" id="add-mapping-btn" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Add Field Mapping
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm d-none" id="sheets-spinner" role="status" aria-hidden="true"></span>
+                            Connect Google Sheet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meta Ads Integration Modal -->
+    <div class="modal fade" id="meta-ads-modal" tabindex="-1" aria-labelledby="metaAdsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="metaAdsModalLabel">Meta Ads Integration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="meta-ads-form">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You'll need a Meta Business account with access to Lead Generation ads.
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="access-token" class="form-label">Access Token</label>
+                            <input type="text" class="form-control" id="access-token" placeholder="Enter Meta access token">
+                            <div class="form-text">Long-lived access token with leads_retrieval permission</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ad-account-id" class="form-label">Ad Account ID</label>
+                            <div class="input-group">
+                                <span class="input-group-text">act_</span>
+                                <input type="text" class="form-control" id="ad-account-id" placeholder="123456789">
+                            </div>
+                            <div class="form-text">Your Meta Ads account ID (numbers only)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="form-id" class="form-label">Lead Form ID (Optional)</label>
+                            <input type="text" class="form-control" id="form-id" placeholder="Leave blank to import from all forms">
+                            <div class="form-text">Specify a form ID to import leads from a specific form only</div>
+                        </div>
+
+                        <h6 class="mb-3">Field Mapping</h6>
+                        <p class="text-muted small mb-3">Map Meta form fields to lead fields</p>
+
+                        <div class="meta-mapping-container">
+                            <div class="mapping-row mb-2">
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <select class="form-select mapping-field">
+                                            <option value="full_name">Full Name</option>
+                                            <option value="email">Email</option>
+                                            <option value="phone">Phone</option>
+                                            <option value="company">Company</option>
+                                            <option value="address">Address</option>
+                                            <option value="city">City</option>
+                                            <option value="state">State</option>
+                                            <option value="country">Country</option>
+                                            <option value="zip_code">Zip Code</option>
+                                            <option value="notes">Notes</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control mapping-column" placeholder="Meta Form Field">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-outline-danger remove-mapping-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="button" id="add-meta-mapping-btn" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Add Field Mapping
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm d-none" id="meta-spinner" role="status" aria-hidden="true"></span>
+                            Connect Meta Ads
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast-notification" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span id="toast-message">Operation completed successfully.</span>
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Axios for API calls -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    // Base API URL
+    const API_URL = '/api/lead';
+    
+    // Current user and authentication data
+    const currentUser = {
+        username: 'soheru',
+        token: localStorage.getItem('access_token') || 'demo_token'
+    };
+
+    // State variables
+    let leads = [];
+    let leadSources = [];
+    let currentPage = 1;
+    let totalLeads = 0;
+    let pageSize = 10;
+    let currentSourceFilter = '';
+
+    // Reference DOM elements
+    const elements = {
+        // Tables and containers
+        leadsTableBody: document.getElementById('leads-table-body'),
+        sourcesTableBody: document.getElementById('sources-table-body'),
+        noLeadsMessage: document.getElementById('no-leads-message'),
+        noSourcesMessage: document.getElementById('no-sources-message'),
+        leadsLoading: document.getElementById('leads-loading'),
+        sourcesLoading: document.getElementById('sources-loading'),
+        
+        // Pagination elements
+        pageInfo: document.getElementById('page-info'),
+        prevPageBtn: document.getElementById('prev-page-btn'),
+        nextPageBtn: document.getElementById('next-page-btn'),
+        
+        // Filters and counts
+        sourceFilter: document.getElementById('source-filter'),
+        totalLeadsBadge: document.getElementById('total-leads-badge'),
+        totalSourcesBadge: document.getElementById('total-sources-badge'),
+        
+        // Buttons
+        refreshLeadsBtn: document.getElementById('refresh-leads-btn'),
+        newIntegrationBtn: document.getElementById('new-integration-btn'),
+        sheetsIntegrationBtn: document.getElementById('sheets-integration-btn'),
+        metaIntegrationBtn: document.getElementById('meta-integration-btn'),
+        
+        // Google Sheets form elements
+        googleSheetsModal: new bootstrap.Modal(document.getElementById('google-sheets-modal')),
+        googleSheetsForm: document.getElementById('google-sheets-form'),
+        spreadsheetUrl: document.getElementById('spreadsheet-url'),
+        sheetName: document.getElementById('sheet-name'),
+        headerRow: document.getElementById('header-row'),
+        addMappingBtn: document.getElementById('add-mapping-btn'),
+        sheetsSpinner: document.getElementById('sheets-spinner'),
+        
+        // Meta Ads form elements
+        metaAdsModal: new bootstrap.Modal(document.getElementById('meta-ads-modal')),
+        metaAdsForm: document.getElementById('meta-ads-form'),
+        accessToken: document.getElementById('access-token'),
+        adAccountId: document.getElementById('ad-account-id'),
+        formId: document.getElementById('form-id'),
+        addMetaMappingBtn: document.getElementById('add-meta-mapping-btn'),
+        metaSpinner: document.getElementById('meta-spinner'),
+        
+        // Toast notification
+        toast: new bootstrap.Toast(document.getElementById('toast-notification')),
+        toastMessage: document.getElementById('toast-message')
+    };
+
+    // Initialize the application
+    function init() {
+        // Set up event listeners
+        setupEventListeners();
+        
+        // Load initial data
+        loadLeadSources();
+        loadLeads();
+        
+        // Update date-time display
+        updateDateTime();
+        setInterval(updateDateTime, 60000); // Update every minute
+    }
+
+    // Set up event listeners for all interactive elements
+    function setupEventListeners() {
+        // Navigation
+        document.getElementById('dashboard-link').addEventListener('click', navigateToDashboard);
+        document.getElementById('leads-link').addEventListener('click', navigateToLeads);
+        
+        // Refresh button
+        elements.refreshLeadsBtn.addEventListener('click', refreshData);
+        
+        // Integration buttons
+        elements.sheetsIntegrationBtn.addEventListener('click', () => elements.googleSheetsModal.show());
+        elements.metaIntegrationBtn.addEventListener('click', () => elements.metaAdsModal.show());
+        
+        // Form submissions
+        elements.googleSheetsForm.addEventListener('submit', handleGoogleSheetsSubmit);
+        elements.metaAdsForm.addEventListener('submit', handleMetaAdsSubmit);
+        
+        // Add mapping buttons
+        elements.addMappingBtn.addEventListener('click', addMapping.bind(null, '.mapping-container'));
+        elements.addMetaMappingBtn.addEventListener('click', addMapping.bind(null, '.meta-mapping-container'));
+        
+        // Set up delegation for remove mapping buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-mapping-btn')) {
+                const row = e.target.closest('.mapping-row');
+                if (row && row.parentElement.children.length > 1) {
+                    row.remove();
+                }
+            }
+        });
+        
+        // Pagination buttons
+        elements.prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                loadLeads();
+            }
+        });
+        
+        elements.nextPageBtn.addEventListener('click', () => {
+            currentPage++;
+            loadLeads();
+        });
+        
+        // Source filter
+        elements.sourceFilter.addEventListener('change', function() {
+            currentSourceFilter = this.value;
+            currentPage = 1;
+            loadLeads();
+        });
+    }
+
+    // Navigation functions
+    function navigateToDashboard(e) {
+        e.preventDefault();
+        // Redirect to dashboard
+        window.location.href = '/dashboard';
+    }
+    
+    function navigateToLeads(e) {
+        e.preventDefault();
+        // Redirect to leads page
+        window.location.href = '/leads';
+    }
+
+    // DateTime updater
+    function updateDateTime() {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const hours = String(now.getUTCHours()).padStart(2, '0');
+        const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+        
+        const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        document.getElementById('current-datetime').textContent = formattedDateTime;
+    }
+
+    // Load lead sources from API
+    async function loadLeadSources() {
+        try {
+            elements.sourcesLoading.classList.remove('d-none');
+            elements.noSourcesMessage.classList.add('d-none');
+            
+            const response = await axios.get(`${API_URL}/lead-sources`, {
+                headers: { Authorization: `Bearer ${currentUser.token}` }
+            });
+            
+            leadSources = response.data || [];
+            renderSourcesTable();
+            updateSourcesCount();
+            populateSourceFilter();
+        } catch (error) {
+            console.error('Error loading lead sources:', error);
+            showToast('Failed to load lead sources. ' + (error.response?.data?.detail || error.message), 'error');
+        } finally {
+            elements.sourcesLoading.classList.add('d-none');
+        }
+    }
+
+    // Load leads from API with pagination and filtering
+    async function loadLeads() {
+        try {
+            elements.leadsLoading.classList.remove('d-none');
+            elements.noLeadsMessage.classList.add('d-none');
+            
+            const params = {
+                page: currentPage,
+                limit: pageSize
+            };
+            
+            if (currentSourceFilter) {
+                params.source = currentSourceFilter;
+            }
+            
+            const response = await axios.get(`${API_URL}/leads`, {
+                params,
+                headers: { Authorization: `Bearer ${currentUser.token}` }
+            });
+            
+            leads = response.data || [];
+            renderLeadsTable();
+            updatePagination();
+        } catch (error) {
+            console.error('Error loading leads:', error);
+            showToast('Failed to load leads. ' + (error.response?.data?.detail || error.message), 'error');
+            leads = [];
+            renderLeadsTable();
+        } finally {
+            elements.leadsLoading.classList.add('d-none');
+        }
+    }
+
+    // Render the sources table
+    function renderSourcesTable() {
+        const sourcesTable = elements.sourcesTableBody;
+        sourcesTable.innerHTML = '';
+        
+        if (leadSources.length === 0) {
+            elements.noSourcesMessage.classList.remove('d-none');
+            return;
+        }
+        
+        elements.noSourcesMessage.classList.add('d-none');
+        
+        leadSources.forEach(source => {
+            const row = document.createElement('tr');
+            
+            const sourceTypeDisplay = source.source_type === 'google_sheets' ? 
+                '<span class="badge source-badge source-badge-google">Google Sheets</span>' : 
+                '<span class="badge source-badge source-badge-meta">Meta Ads</span>';
+            
+            const lastSyncDate = source.last_sync_time ? 
+                new Date(source.last_sync_time).toLocaleString() : 
+                'Never';
+            
+            row.innerHTML = `
+                <td>
+                    <div class="d-flex align-items-center">
+                        ${sourceTypeDisplay}
+                        <span class="ms-2">${source.name}</span>
+                    </div>
+                </td>
+                <td>${source.source_type}</td>
+                <td>${source.total_leads || 0}</td>
+                <td class="date-display">${lastSyncDate}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1 sync-source-btn" data-id="${source.id}">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-source-btn" data-id="${source.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            sourcesTable.appendChild(row);
+        });
+        
+        // Add event listeners to buttons
+        document.querySelectorAll('.sync-source-btn').forEach(btn => {
+            btn.addEventListener('click', () => syncSource(btn.dataset.id));
+        });
+        
+        document.querySelectorAll('.delete-source-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteSource(btn.dataset.id));
+        });
+    }
+
+    // Render the leads table
+    function renderLeadsTable() {
+        const leadsTable = elements.leadsTableBody;
+        leadsTable.innerHTML = '';
+        
+        if (leads.length === 0) {
+            elements.noLeadsMessage.classList.remove('d-none');
+            return;
+        }
+        
+        elements.noLeadsMessage.classList.add('d-none');
+        
+        leads.forEach(lead => {
+            const row = document.createElement('tr');
+            
+            const sourceTypeDisplay = lead.source === 'google_sheets' ? 
+                '<span class="badge source-badge source-badge-google">Google</span>' : 
+                '<span class="badge source-badge source-badge-meta">Meta</span>';
+            
+            const createdDate = lead.created_at ? 
+                new Date(lead.created_at).toLocaleString() : 
+                'Unknown';
+            
+            row.innerHTML = `
+                <td>
+                    <div class="fw-medium">${lead.full_name || 'N/A'}</div>
+                </td>
+                <td>${lead.email || 'N/A'}</td>
+                <td>${lead.phone || 'N/A'}</td>
+                <td>${sourceTypeDisplay}</td>
+                <td class="date-display">${createdDate}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary view-lead-btn" data-id="${lead.id}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            `;
+            
+            leadsTable.appendChild(row);
+        });
+        
+        // Add event listeners to view buttons
+        document.querySelectorAll('.view-lead-btn').forEach(btn => {
+            btn.addEventListener('click', () => viewLeadDetails(btn.dataset.id));
+        });
+    }
+
+    // Update the pagination information
+    function updatePagination() {
+        const startItem = (currentPage - 1) * pageSize + 1;
+        const endItem = Math.min(startItem + leads.length - 1, totalLeads);
+        
+        // Update page info text
+        elements.pageInfo.textContent = `${startItem}-${endItem} of ${totalLeads}`;
+        
+        // Update button states
+        elements.prevPageBtn.disabled = currentPage <= 1;
+        elements.nextPageBtn.disabled = endItem >= totalLeads;
+    }
+
+    // Update sources count badge
+    function updateSourcesCount() {
+        elements.totalSourcesBadge.textContent = `${leadSources.length} Sources`;
+    }
+
+    // Populate source filter dropdown
+    function populateSourceFilter() {
+        const sourceTypes = new Set();
+        leadSources.forEach(source => {
+            sourceTypes.add(source.source_type);
+        });
+        
+        // Clear existing options (except the first "All Sources" option)
+        elements.sourceFilter.innerHTML = '<option value="">All Sources</option>';
+        
+        // Add new options
+        sourceTypes.forEach(sourceType => {
+            const option = document.createElement('option');
+            option.value = sourceType;
+            option.textContent = sourceType === 'google_sheets' ? 'Google Sheets' : 'Meta Ads';
+            elements.sourceFilter.appendChild(option);
+        });
+    }
+
+    // Add a new field mapping row
+    function addMapping(containerSelector) {
+        const container = document.querySelector(containerSelector);
+        const firstRow = container.querySelector('.mapping-row');
+        
+        if (!firstRow) return;
+        
+        const newRow = firstRow.cloneNode(true);
+        
+        // Clear input values
+        newRow.querySelector('input').value = '';
+        
+        // Add to container
+        container.appendChild(newRow);
+    }
+
+    // Refresh all data
+    function refreshData() {
+        currentPage = 1;
+        loadLeadSources();
+        loadLeads();
+        showToast('Data refreshed successfully');
+    }
+
+    // Handle Google Sheets integration form submission
+    async function handleGoogleSheetsSubmit(e) {
+        e.preventDefault();
+        
+        try {
+            elements.sheetsSpinner.classList.remove('d-none');
+            
+            // Collect form data
+            const spreadsheetUrl = elements.spreadsheetUrl.value.trim();
+            const sheetName = elements.sheetName.value.trim();
+            const headerRow = parseInt(elements.headerRow.value) || 1;
+            
+            // Collect mappings
+            const mappingContainer = document.querySelector('.mapping-container');
+            const mappingRows = mappingContainer.querySelectorAll('.mapping-row');
+            
+            const mapping = {};
+            mappingRows.forEach(row => {
+                const field = row.querySelector('.mapping-field').value;
+                const column = row.querySelector('.mapping-column').value.trim();
+                if (field && column) {
+                    mapping[field] = column;
+                }
+            });
+            
+            if (Object.keys(mapping).length === 0) {
+                showToast('Please add at least one field mapping', 'error');
+                return;
+            }
+            
+            // Make API request
+            const response = await axios.post(`${API_URL}/integrations/google-sheets`, {
+                spreadsheet_url: spreadsheetUrl,
+                sheet_name: sheetName,
+                header_row: headerRow,
+                mapping: mapping
+            }, {
+                headers: { Authorization: `Bearer ${currentUser.token}` }
+            });
+            
+            // Handle successful response
+            elements.googleSheetsModal.hide();
+            showToast('Google Sheets integration started successfully');
+            
+            // Refresh data after a short delay
+            setTimeout(refreshData, 2000);
+        } catch (error) {
+            console.error('Error setting up Google Sheets integration:', error);
+            showToast('Failed to set up Google Sheets integration. ' + (error.response?.data?.detail || error.message), 'error');
+        } finally {
+            elements.sheetsSpinner.classList.add('d-none');
+        }
+    }
+
+    // Handle Meta Ads integration form submission
+    async function handleMetaAdsSubmit(e) {
+        e.preventDefault();
+        
+        try {
+            elements.metaSpinner.classList.remove('d-none');
+            
+            // Collect form data
+            const accessToken = elements.accessToken.value.trim();
+            const adAccountId = elements.adAccountId.value.trim();
+            const formId = elements.formId.value.trim() || null;
+            
+            // Collect mappings
+            const mappingContainer = document.querySelector('.meta-mapping-container');
+            const mappingRows = mappingContainer.querySelectorAll('.mapping-row');
+            
+            const mapping = {};
+            mappingRows.forEach(row => {
+                const field = row.querySelector('.mapping-field').value;
+                const column = row.querySelector('.mapping-column').value.trim();
+                if (field && column) {
+                    mapping[field] = column;
+                }
+            });
+            
+            if (Object.keys(mapping).length === 0) {
+                showToast('Please add at least one field mapping', 'error');
+                return;
+            }
+            
+            // Make API request
+            const response = await axios.post(`${API_URL}/integrations/meta-ads`, {
+                access_token: accessToken,
+                ad_account_id: adAccountId,
+                form_id: formId,
+                mapping: mapping
+            }, {
+                headers: { Authorization: `Bearer ${currentUser.token}` }
+            });
+            
+            // Handle successful response
+            elements.metaAdsModal.hide();
+            showToast('Meta Ads integration started successfully');
+            
+            // Refresh data after a short delay
+            setTimeout(refreshData, 2000);
+        } catch (error) {
+            console.error('Error setting up Meta Ads integration:', error);
+            showToast('Failed to set up Meta Ads integration. ' + (error.response?.data?.detail || error.message), 'error');
+        } finally {
+            elements.metaSpinner.classList.add('d-none');
+        }
+    }
+
+    // Sync a specific lead source
+    async function syncSource(sourceId) {
+        // This would be implemented depending on your API's capability to resync a source
+        showToast('Syncing lead source...', 'info');
+        // Here you would make an API call to trigger the sync
+        
+        // For demo purposes:
+        setTimeout(refreshData, 1500);
+    }
+
+    // Delete a lead source
+    async function deleteSource(sourceId) {
+        if (!confirm('Are you sure you want to delete this lead source? This will not delete imported leads.')) {
+            return;
+        }
+        
+        // This would be implemented depending on your API's capability to delete a source
+        showToast('Deleting lead source...', 'info');
+        // Here you would make an API call to delete the source
+        
+        // For demo purposes:
+        setTimeout(refreshData, 1500);
+    }
+
+    // View lead details
+    function viewLeadDetails(leadId) {
+        // This would open a lead details modal or navigate to a details page
+        alert(`View details for lead ID: ${leadId}`);
+        // You would implement this based on your application's navigation system
+    }
+
+    // Display a toast notification
+    function showToast(message, type = 'success') {
+        elements.toastMessage.textContent = message;
+        
+        const toastEl = document.getElementById('toast-notification');
+        toastEl.className = toastEl.className.replace(/bg-\w+/, '');
+        
+        switch (type) {
+            case 'error':
+                toastEl.classList.add('bg-danger');
+                break;
+            case 'info':
+                toastEl.classList.add('bg-info');
+                break;
+            case 'warning':
+                toastEl.classList.add('bg-warning');
+                break;
+            default:
+                toastEl.classList.add('bg-success');
+        }
+        
+        elements.toast.show();
+    }
+
+    // Initialize the app
+    init();
+});
+    </script>
+</body>
+</html>

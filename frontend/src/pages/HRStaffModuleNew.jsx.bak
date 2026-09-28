@@ -1,0 +1,903 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Dashboard, 
+  EmployeeDashboar      // Using the endpoints from employees_new.py
+      const response = await fetch(`${API_BASE_URL}/api/employees`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });tendanceManagement,
+  LeaveManagement,
+  ProfileManagement
+} from '../components/hr';
+
+cons      // Using the endpoints from employees_new.py
+      const endpoint = action === 'approve' 
+        ? `${API_BASE_URL}/api/employees/leave-requests/${requestId}/approve` 
+        : `${API_BASE_URL}/api/employees/leave-requests/${requestId}/reject`;I_BASE_URL = 'https://cubehis.avopay.pro:5000';
+
+const HRStaffModuleNew = () => {
+  // State Management
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalEmployees: 0,
+    presentToday: 0,
+    absentToday: 0,
+    onLeaveToday: 0,
+    pendingLeaveRequests: 0,
+    departmentBreakdown: []
+  });
+  const [myAttendance, setMyAttendance] = useState([]);
+  const [allEmployeeAttendance, setAllEmployeeAttendance] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveCounts, setLeaveCounts] = useState({
+    casual: 0,
+    casual_pending: 0,
+    sick: 0,
+    sick_pending: 0,
+    annual: 0,
+    annual_pending: 0,
+    other: 0,
+    other_pending: 0
+  });
+  const [menuOpen, setMenuOpen] = useState(false);
+  
+  // User Role Information
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isHR, setIsHR] = useState(false);
+  
+  const navigate = useNavigate();
+  
+  // Initialize and load data
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    
+    fetchCurrentUser();
+  }, [navigate]);
+  
+  // Load data after authentication
+  useEffect(() => {
+    if (currentUser) {
+      checkUserRoles();
+      fetchEmployees();
+      fetchDashboardStats();
+      fetchAttendance();
+      fetchLeaveRequests();
+    }
+  }, [currentUser]);
+
+  // Check user roles and set permissions
+  const checkUserRoles = () => {
+    if (!currentUser) return;
+    
+    // Admin check
+    const hasAdminRole = 
+      (currentUser.role || '').toLowerCase() === 'admin' || 
+      (Array.isArray(currentUser.roles) && currentUser.roles.some(r => r.toLowerCase().includes('admin'))) ||
+      !currentUser.reports_to ||
+      currentUser.reports_to === null;
+    
+    // HR check
+    const hasHRRole =
+      (currentUser.role || '').toLowerCase().includes('hr') ||
+      (currentUser.role || '').toLowerCase().includes('human resource') ||
+      (Array.isArray(currentUser.roles) && currentUser.roles.some(r => r.toLowerCase().includes('hr')));
+    
+    setIsAdmin(hasAdminRole);
+    setIsHR(hasHRRole);
+    
+    console.log('🔒 User Role Check - Admin:', hasAdminRole, 'HR:', hasHRRole);
+  };
+  
+  // Helper for permission checks
+  const hasPermission = (role) => {
+    if (role === 'admin') return isAdmin;
+    if (role === 'hr') return isHR;
+    return false;
+  };
+  
+  // Fetch current user information
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setLoading(false);
+        navigate('/login');
+        return;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setCurrentUser(userData);
+        console.log('�� Current user loaded:', userData);
+      } else {
+        console.error('Failed to fetch current user');
+        localStorage.removeItem('access_token');
+        navigate('/login');
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      setLoading(false);
+      localStorage.removeItem('access_token');
+      navigate('/login');
+    }
+  };
+
+  // Fetch employees list (excluding customers)
+  const fetchEmployees = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      console.log('📡 Fetching employees');
+            // Using the endpoints from employees_new.py
+      const response = await fetch(`${API_BASE_URL}/api/employees/leave-requests`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Filter out customers
+        const filteredEmployees = Array.isArray(result) 
+          ? result.filter(emp => !((emp.role || '').toLowerCase() === 'customer'))
+          : [];
+        
+        setEmployees(filteredEmployees);
+        console.log(`✅ ${filteredEmployees.length} employees loaded`);
+      } else {
+        console.error('Failed to fetch employees:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    }
+  };
+  
+  // Fetch dashboard statistics
+  const fetchDashboardStats = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      
+      console.log('📊 Fetching dashboard statistics');
+            // Using the endpoints from employees_new.py - Use dashboard endpoint if available
+      const userId = currentUser?.id || currentUser?.user_id;
+      const response = await fetch(`${API_BASE_URL}/api/employees/dashboard?user_id=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const stats = await response.json();
+        setDashboardStats(stats);
+        console.log('📊 Dashboard stats loaded');
+      } else {
+        console.error('Failed to fetch dashboard stats, falling back to manual calculation');
+        
+        // Set default stats if API fails
+        const today = new Date().toISOString().split('T')[0];
+        setDashboardStats({
+          totalEmployees: employees.length,
+          presentToday: allEmployeeAttendance.filter(a => a.date === today && a.status === 'present').length,
+          absentToday: employees.length - allEmployeeAttendance.filter(a => a.date === today && a.status === 'present').length,
+          onLeaveToday: leaveRequests.filter(l => {
+            const startDate = new Date(l.start_date);
+            const endDate = new Date(l.end_date);
+            const todayDate = new Date(today);
+            return l.status === 'approved' && startDate <= todayDate && endDate >= todayDate;
+          }).length,
+          pendingLeaveRequests: leaveRequests.filter(l => l.status === 'pending').length,
+          departmentBreakdown: []
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    }
+  };
+  
+  // Fetch attendance records
+  const fetchAttendance = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      
+      console.log('🗓️ Fetching attendance records');
+      
+      // Fetch my attendance (for regular employees)
+      const userId = currentUser?.id || currentUser?.user_id;
+      if (!userId) return;
+      
+      // Using the new endpoints from employees_new.py
+      const myResponse = await fetch(`${API_BASE_URL}/api/employees/my-attendance?user_id=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (myResponse.ok) {
+        const myData = await myResponse.json();
+        setMyAttendance(Array.isArray(myData) ? myData : []);
+      } else {
+        console.error('Failed to fetch my attendance:', await myResponse.text());
+      }
+      
+      // Fetch all attendance (for HR/Admin)
+      if (isAdmin || isHR) {
+        // Using the new endpoints from employees_new.py
+        const allResponse = await fetch(`${API_BASE_URL}/api/employees/attendance/all-records?current_user_id=${userId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (allResponse.ok) {
+          const allData = await allResponse.json();
+          setAllEmployeeAttendance(Array.isArray(allData) ? allData : []);
+        } else {
+          console.error('Failed to fetch all attendance:', await allResponse.text());
+        }
+      }
+      
+      console.log('✅ Attendance records loaded');
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+    }
+  };
+  
+  // Fetch leave requests
+  const fetchLeaveRequests = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      
+      console.log('🏝️ Fetching leave requests');
+      
+      const userId = currentUser?.id || currentUser?.user_id;
+      if (!userId) return;
+      
+      // Determine if admin/HR for proper roles parameter
+      const userRoles = Array.isArray(currentUser?.roles) ? currentUser.roles.join(',') : (currentUser?.role || 'employee');
+      
+            // Using the endpoints from employees_new.py
+      let endpoint = `${API_BASE_URL}/api/employees/leave-requests?current_user_id=${userId}&current_user_roles=${userRoles}`;
+      if (!isAdmin && !isHR && currentUser) {
+        endpoint = `${API_BASE_URL}/api/employees/${userId}/leave-requests`;
+      }
+      
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLeaveRequests(Array.isArray(data) ? data : []);
+        
+        // Calculate leave counts for admin dashboard
+        if (isAdmin || isHR) {
+          const counts = {
+            casual: 0,
+            casual_pending: 0,
+            sick: 0, 
+            sick_pending: 0,
+            annual: 0,
+            annual_pending: 0,
+            other: 0,
+            other_pending: 0
+          };
+          
+          if (Array.isArray(data)) {
+            data.forEach(leave => {
+              const type = leave.leave_type || 'other';
+              
+              if (leave.status === 'pending') {
+                counts[`${type}_pending`] = (counts[`${type}_pending`] || 0) + 1;
+              }
+              
+              counts[type] = (counts[type] || 0) + 1;
+            });
+          }
+          
+          setLeaveCounts(counts);
+        }
+        
+        console.log('✅ Leave requests loaded');
+      } else {
+        console.error('Failed to fetch leave requests:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+    }
+  };
+  
+  // Handle check-in
+  const handleCheckIn = async (notes = '') => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      
+      console.log('✍️ Recording check in');
+      const userId = currentUser?.id || currentUser?.user_id;
+      if (!userId) return;
+      
+            // Using the endpoints from employees_new.py
+      const response = await fetch(`${API_BASE_URL}/api/employees/attendance/checkin`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          user_id: userId,
+          notes,
+          action: 'checkin'
+        })
+      });
+      
+      if (response.ok) {
+        // Refresh attendance
+        fetchAttendance();
+        console.log('✅ Check-in recorded');
+      } else {
+        console.error('Failed to record check-in:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error recording check-in:', error);
+    }
+  };
+  
+  // Handle check-out
+  const handleCheckOut = async (notes = '') => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      
+      console.log('✍️ Recording check out');
+      const userId = currentUser?.id || currentUser?.user_id;
+      if (!userId) return;
+      
+            // Using the endpoints from employees_new.py
+      // Note: Fixed endpoint to use checkout instead of checkin with action
+      const response = await fetch(`${API_BASE_URL}/api/employees/${userId}/attendance/checkout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          notes
+        })
+      });
+      
+      if (response.ok) {
+        // Refresh attendance
+        fetchAttendance();
+        console.log('✅ Check-out recorded');
+      } else {
+        console.error('Failed to record check-out:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error recording check-out:', error);
+    }
+  };
+  
+  // Update attendance record
+  const handleUpdateAttendance = async (recordId, updateData) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      
+      console.log('📝 Updating attendance record:', recordId, updateData);
+            // Using the endpoints from employees_new.py
+      const response = await fetch(`${API_BASE_URL}/api/employees/attendance/${recordId}/edit`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+      
+      if (response.ok) {
+        // Refresh attendance records
+        fetchAttendance();
+        console.log('✅ Attendance record updated successfully');
+      } else {
+        console.error('Failed to update attendance record:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error updating attendance record:', error);
+    }
+  };
+  
+  // Submit leave request
+  const handleSubmitLeaveRequest = async (leaveData) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      
+      console.log('🏝️ Submitting leave request:', leaveData);
+      
+      // Add current user ID if not set
+      if (!leaveData.employee_id && currentUser) {
+        leaveData.employee_id = currentUser.id || currentUser.user_id;
+      }
+      
+      // Ensure user_id is set for backend API
+      leaveData.user_id = leaveData.employee_id;
+      
+      // Using the new endpoints from employees_new.py
+      const response = await fetch(`${API_BASE_URL}/api/employees/leave-requests`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(leaveData)
+      });
+      
+      if (response.ok) {
+        // Refresh leave requests
+        fetchLeaveRequests();
+        console.log('✅ Leave request submitted successfully');
+      } else {
+        console.error('Failed to submit leave request:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error submitting leave request:', error);
+    }
+  };
+  
+  // Handle leave approval/rejection
+  const handleLeaveRequestAction = async (requestId, action, reason = '') => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return false;
+      
+      console.log(`🏝️ ${action === 'approve' ? 'Approving' : 'Rejecting'} leave request:`, requestId);
+      
+      // Using the new endpoints from employees_new.py
+      const endpoint = action === 'approve' 
+        ? `${API_BASE_URL}/api/employees/leave-requests/${requestId}/approve` 
+        : `${API_BASE_URL}/api/employees/leave-requests/${requestId}/reject`;
+      
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason })
+      });
+      
+      if (response.ok) {
+        // Refresh leave requests
+        fetchLeaveRequests();
+        console.log(`✅ Leave request ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
+        return true;
+      } else {
+        console.error(`Failed to ${action} leave request:`, await response.text());
+        return false;
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing leave request:`, error);
+      return false;
+    }
+  };
+  
+  // Update user profile
+  const handleUpdateProfile = async (profileData) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return false;
+      
+      console.log('👤 Updating user profile:', profileData);
+      
+      const userId = currentUser?.id || currentUser?.user_id;
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(profileData)
+      });
+      
+      if (response.ok) {
+        // Update current user data
+        fetchCurrentUser();
+        console.log('✅ Profile updated successfully');
+        return true;
+      } else {
+        console.error('Failed to update profile');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return false;
+    }
+  };
+  
+  // Change password
+  const handlePasswordChange = async (passwordData) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return false;
+      
+      console.log('🔒 Changing password');
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(passwordData)
+      });
+      
+      if (response.ok) {
+        console.log('✅ Password changed successfully');
+        return true;
+      } else {
+        console.error('Failed to change password');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      return false;
+    }
+  };
+  
+  // Upload profile image
+  const handleUploadProfileImage = async (imageFile) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return false;
+      
+      console.log('🖼️ Uploading profile image');
+      
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      
+      const userId = currentUser.user_id || currentUser.id;
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/upload-profile-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (response.ok) {
+        // Update current user data
+        fetchCurrentUser();
+        console.log('✅ Profile image uploaded successfully');
+        return true;
+      } else {
+        console.error('Failed to upload profile image');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      return false;
+    }
+  };
+  
+  // Sign out function
+  const handleSignOut = () => {
+    localStorage.removeItem('access_token');
+    navigate('/login');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="ml-3 text-gray-700">Loading HR module...</p>
+      </div>
+    );
+  }
+  
+  const isAdminOrHR = isAdmin || isHR;
+  
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      {/* Header with user info */}
+      <div className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="text-xl font-bold text-blue-600">HR Module</div>
+            <div className="hidden md:flex space-x-1">
+              <button 
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'dashboard' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Dashboard
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab('attendance')}
+                className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'attendance' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Attendance
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab('leaves')}
+                className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'leaves' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Leave Management
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab('profile')}
+                className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'profile' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Profile
+              </button>
+              
+              {isAdminOrHR && (
+                <button 
+                  onClick={() => setActiveTab('employees')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'employees' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  Employees
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <div className="hidden md:flex items-center">
+              <div className="mr-2 text-right">
+                <div className="text-sm font-medium text-gray-900">{currentUser?.name || currentUser?.full_name}</div>
+                <div className="text-xs text-gray-500">{currentUser?.email}</div>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                {(currentUser?.name || currentUser?.full_name)?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            </div>
+            
+            <div className="md:hidden">
+              <button 
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 rounded-md text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile Navigation - Shown when menu is open */}
+      {menuOpen && (
+        <div className="md:hidden bg-white shadow-sm border-t">
+          <div className="container mx-auto px-4 py-2">
+            <button 
+              onClick={() => {
+                setActiveTab('dashboard');
+                setMenuOpen(false);
+              }}
+              className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'dashboard' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'}`}
+            >
+              Dashboard
+            </button>
+            <button 
+              onClick={() => {
+                setActiveTab('attendance');
+                setMenuOpen(false);
+              }}
+              className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'attendance' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'}`}
+            >
+              Attendance
+            </button>
+            <button 
+              onClick={() => {
+                setActiveTab('leaves');
+                setMenuOpen(false);
+              }}
+              className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'leaves' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'}`}
+            >
+              Leave Management
+            </button>
+            <button 
+              onClick={() => {
+                setActiveTab('profile');
+                setMenuOpen(false);
+              }}
+              className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'profile' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'}`}
+            >
+              Profile
+            </button>
+            {isAdminOrHR && (
+              <button 
+                onClick={() => {
+                  setActiveTab('employees');
+                  setMenuOpen(false);
+                }}
+                className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium ${activeTab === 'employees' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'}`}
+              >
+                Employees
+              </button>
+            )}
+            <button 
+              onClick={handleSignOut}
+              className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-600"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Main Content Area */}
+      <div className="container mx-auto p-4">
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            {isAdminOrHR ? (
+              <Dashboard 
+                dashboardStats={dashboardStats} 
+                employees={employees} 
+                hasPermission={hasPermission}
+              />
+            ) : (
+              <EmployeeDashboard 
+                userDetails={currentUser}
+                userAttendance={myAttendance}
+                userLeaves={leaveRequests.filter(leave => 
+                  leave.user_id === (currentUser?.id || currentUser?.user_id)
+                )}
+              />
+            )}
+          </div>
+        )}
+        
+        {/* Attendance Tab */}
+        {activeTab === 'attendance' && (
+          <AttendanceManagement 
+            currentUser={currentUser}
+            myAttendance={myAttendance}
+            allAttendance={allEmployeeAttendance}
+            employees={employees}
+            handleCheckIn={handleCheckIn}
+            handleCheckOut={handleCheckOut}
+            handleUpdateAttendance={handleUpdateAttendance}
+            isAdminOrHR={isAdminOrHR}
+          />
+        )}
+        
+        {/* Leave Management Tab */}
+        {activeTab === 'leaves' && (
+          <LeaveManagement 
+            hasPermission={hasPermission}
+            leaveRequests={leaveRequests}
+            employees={employees}
+            user={currentUser}
+            loading={loading}
+            handleLeaveRequestAction={handleLeaveRequestAction}
+            handleCreateLeaveRequest={handleSubmitLeaveRequest}
+            leaveCounts={leaveCounts}
+            userLeaves={leaveRequests.filter(leave => 
+              leave.user_id === (currentUser?.id || currentUser?.user_id)
+            )}
+          />
+        )}
+        
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <ProfileManagement 
+            userDetails={currentUser}
+            handleUpdateProfile={handleUpdateProfile}
+            handlePasswordChange={handlePasswordChange}
+            uploadProfileImage={handleUploadProfileImage}
+          />
+        )}
+        
+        {/* Employees Tab (Admin/HR Only) */}
+        {activeTab === 'employees' && isAdminOrHR && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Employee Management</h2>
+                <p className="text-gray-600 mt-1">Manage all employees in the organization</p>
+              </div>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Add New Employee
+              </button>
+            </div>
+            
+            {/* Employee filters and list will go here */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium">All Employees</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {employees.map(employee => (
+                      <tr key={employee.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0">
+                              {employee?.profile_image ? (
+                                <img className="h-10 w-10 rounded-full object-cover" src={employee.profile_image} alt="" />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                                  {employee.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{employee.name}</div>
+                              <div className="text-xs text-gray-500">{employee.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {employee.department || 'Not assigned'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {employee.position || employee.role || 'Not assigned'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {employee.phone || 'No phone'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <a href={`/employee/${employee.id}`} className="text-blue-600 hover:text-blue-900 mr-4">View</a>
+                          <a href="#" className="text-indigo-600 hover:text-indigo-900">Edit</a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default HRStaffModuleNew;

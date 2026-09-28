@@ -1,0 +1,13 @@
+--- leads.py.orig
++++ leads.py
+@@ -815,7 +815,9 @@
+                 
+                 # Create hierarchy conditions
+                 hierarchy_conditions = [
+-                    {"assigned_to": {"$in": accessible_user_ids}},
++                    {"assigned_to": {"$in": accessible_user_ids}}, 
++                    # Check both assigned_to and assigned_user_id fields
++                    {"assigned_user_id": {"$in": accessible_user_ids}},
+                     {"created_by": {"$in": accessible_user_ids}},
+                     {"assigned_to": user_id},  # Direct assignment
+                     {"created_by": user_id}    # Created by user

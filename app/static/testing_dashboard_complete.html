@@ -1,0 +1,2138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2B CRM - Complete Business System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom Styles for B2B CRM */
+        :root {
+            --primary: #4e73df;
+            --primary-dark: #2e59d9;
+            --secondary: #858796;
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
+        }
+
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+            padding-top: 56px;
+            /* Account for fixed navbar */
+        }
+
+        .feature-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+        }
+
+        .card {
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .bg-primary {
+            background-color: var(--primary) !important;
+        }
+
+        .border-left-primary {
+            border-left: 0.25rem solid var(--primary);
+        }
+
+        .border-left-success {
+            border-left: 0.25rem solid var(--success);
+        }
+
+        .border-left-info {
+            border-left: 0.25rem solid var(--info);
+        }
+
+        .border-left-warning {
+            border-left: 0.25rem solid var(--warning);
+        }
+
+        .auth-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .card.shadow {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+        }
+
+        .navbar-dark .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .navbar-dark .navbar-nav .nav-link:hover {
+            color: #fff;
+        }
+
+        .section {
+            display: none;
+            /* Hide all sections by default */
+            padding: 40px 0;
+        }
+
+        .section.active {
+            display: block;
+            /* Show only active section */
+        }
+
+        #dashboard-section {
+            background-color: #f8f9fc;
+            min-height: calc(100vh - 56px);
+        }
+
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #4e73df;
+            background-image: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
+            background-size: cover;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, .8);
+            padding: 1rem;
+        }
+
+        .sidebar .nav-link:hover {
+            color: #fff;
+        }
+
+        .sidebar .nav-link.active {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .sidebar-heading {
+            color: rgba(255, 255, 255, .4);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 1rem;
+        }
+
+        .topbar {
+            height: 4.375rem;
+        }
+
+        #main-content {
+            min-height: calc(100vh - 56px);
+        }
+
+        /* Current datetime display */
+        #current-datetime {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8rem;
+            margin-bottom: 0;
+            padding: 0.5rem;
+        }
+
+        /* Fixed authenticated nav display */
+        #authenticated-nav {
+            width: 100%;
+            display: none;
+        }
+
+        #authenticated-nav.active {
+            display: flex;
+        }
+
+        /* Role Management Styles */
+        .role-card {
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .role-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        /* Animation for loading state */
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- FIXED Navigation Structure -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">B2B CRM</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Unauthenticated navigation -->
+                <div id="unauthenticated-nav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="home-section">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="features-section">Features</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-light ms-2" href="#"
+                                data-section="login-section">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-light text-primary ms-2" href="#"
+                                data-section="register-section">Register</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Authenticated navigation -->
+                <div id="authenticated-nav" style="display: none;">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#"><i class="fas fa-home"></i> Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="fas fa-users"></i> Leads</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="fas fa-building"></i> Franchises</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="fas fa-user-tie"></i> Customers</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#roles"><i
+                                    class="fas fa-user-shield"></i> Role Management</a>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item me-3">
+                            <div class="d-flex flex-column align-items-end">
+                                <p id="current-datetime" class="my-1">Loading time...</p>
+                            </div>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="user-name-display" role="button"
+                                data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i> <span id="user-name">soheru</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item" href="#" id="logout-btn"><i
+                                            class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Keep the rest of your sections as is -->
+
+    <!-- Home Section -->
+    <section id="home-section" class="section active">
+        <!-- Hero Section -->
+        <header class="bg-primary text-white py-5">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h1 class="display-4 fw-bold mb-3">Complete Business Management Solution</h1>
+                        <p class="lead mb-4">B2B CRM helps you manage leads, customers, franchises, inventory, and
+                            everything your business needs - all in one place.</p>
+                        <div class="d-flex gap-3">
+                            <button class="btn btn-light btn-lg px-4" data-section="register-section">Get
+                                Started</button>
+                            <button class="btn btn-outline-light btn-lg px-4" data-section="features-section">Learn
+                                More</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 d-none d-md-block text-center">
+                        <i class="fas fa-laptop-code fa-10x text-light opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Features Section -->
+        <div class="py-5" id="features-section">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <h2 class="fw-bold">Key Features</h2>
+                    <p class="text-muted lead">Everything you need to manage and grow your business</p>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body text-center p-4">
+                                <div class="feature-icon bg-primary text-white mb-3">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                                <h5 class="card-title">Lead Management</h5>
+                                <p class="card-text">Track leads from multiple sources, assign to team members, and
+                                    convert them to customers.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body text-center p-4">
+                                <div class="feature-icon bg-primary text-white mb-3">
+                                    <i class="fas fa-building fa-2x"></i>
+                                </div>
+                                <h5 class="card-title">Franchise Management</h5>
+                                <p class="card-text">Manage franchise applications, approvals, documents, and
+                                    performance all in one place.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body text-center p-4">
+                                <div class="feature-icon bg-primary text-white mb-3">
+                                    <i class="fas fa-chart-line fa-2x"></i>
+                                </div>
+                                <h5 class="card-title">Analytics & Reports</h5>
+                                <p class="card-text">Get actionable insights with detailed reports and performance
+                                    analytics.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="bg-light py-5">
+            <div class="container text-center">
+                <h2 class="mb-3">Ready to streamline your business?</h2>
+                <p class="lead mb-4">Join thousands of businesses already using B2B CRM</p>
+                <button class="btn btn-primary btn-lg px-5" data-section="register-section">Sign Up Now</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Section -->
+    <section id="login-section" class="section">
+        <div class="container">
+            <div class="row justify-content-center mt-5">
+                <div class="col-md-6 col-lg-5">
+                    <div class="card shadow">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <h2 class="fw-bold text-primary">B2B CRM</h2>
+                                <p class="text-muted">Login to your account</p>
+                            </div>
+
+                            <div id="login-error" class="alert alert-danger d-none" role="alert">
+                                Invalid username or password
+                            </div>
+
+                            <form id="login-form">
+                                <div class="mb-3">
+                                    <label for="login-username" class="form-label">Username</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        <input type="text" class="form-control" id="login-username" name="username"
+                                            required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="login-password" class="form-label">Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input type="password" class="form-control" id="login-password" name="password"
+                                            required>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="remember-me">
+                                        <label class="form-check-label" for="remember-me">Remember me</label>
+                                    </div>
+                                    <a href="#" class="text-primary">Forgot password?</a>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                                </div>
+                            </form>
+
+                            <div class="text-center mt-4">
+                                <p>Don't have an account? <a href="#" class="text-primary"
+                                        data-section="register-section">Register</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Register Section -->
+    <section id="register-section" class="section">
+        <div class="container">
+            <div class="row justify-content-center my-5">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card shadow">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <h2 class="fw-bold text-primary">B2B CRM</h2>
+                                <p class="text-muted">Create a new account</p>
+                            </div>
+
+                            <div id="register-error" class="alert alert-danger d-none" role="alert">
+                                Registration failed. Please try again.
+                            </div>
+
+                            <form id="register-form">
+                                <div class="mb-3">
+                                    <label for="fullName" class="form-label">Full Name</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        <input type="text" class="form-control" id="fullName" name="fullName" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
+                                        <input type="text" class="form-control" id="username" name="username" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        <input type="email" class="form-control" id="email" name="email" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="password" class="form-label">Password</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                            <input type="password" class="form-control" id="password" name="password"
+                                                required>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                            <input type="password" class="form-control" id="confirmPassword"
+                                                name="confirmPassword" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="terms" required>
+                                        <label class="form-check-label" for="terms">
+                                            I agree to the <a href="#" class="text-primary">Terms of Service</a> and <a
+                                                href="#" class="text-primary">Privacy Policy</a>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">Register</button>
+                                </div>
+                            </form>
+
+                            <div class="text-center mt-4">
+                                <p>Already have an account? <a href="#" class="text-primary"
+                                        data-section="login-section">Login</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard-section" class="section">
+        <div class="container-fluid h-100">
+            <div class="row h-100">
+                <!-- Sidebar -->
+                <div class="col-md-2 sidebar py-4">
+                    <div class="sidebar-heading">Core</div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-bs-toggle="tab" data-bs-target="#overview">
+                                <i class="fas fa-fw fa-tachometer-alt me-2"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <hr class="sidebar-divider my-0">
+
+                    <div class="sidebar-heading">Interface</div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#leads">
+                                <i class="fas fa-fw fa-users me-2"></i>
+                                <span>Leads</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#franchises">
+                                <i class="fas fa-fw fa-building me-2"></i>
+                                <span>Franchises</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#customers">
+                                <i class="fas fa-fw fa-user-tie me-2"></i>
+                                <span>Customers</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#inventory">
+                                <i class="fas fa-fw fa-boxes me-2"></i>
+                                <span>Inventory</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#roles">
+                                <i class="fas fa-fw fa-user-shield me-2"></i>
+                                <span>Role Management</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <hr class="sidebar-divider my-0">
+
+                    <div class="sidebar-heading">Addons</div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#reports">
+                                <i class="fas fa-fw fa-chart-area me-2"></i>
+                                <span>Reports</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#settings">
+                                <i class="fas fa-fw fa-cog me-2"></i>
+                                <span>Settings</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col-md-10 p-4" id="main-content">
+                    <div class="tab-content">
+                        <!-- Overview Tab -->
+                        <div class="tab-pane fade show active" id="overview">
+                            <h1 class="h3 mb-4 text-gray-800">Dashboard</h1>
+
+                            <!-- Role Welcome Message -->
+                            <div class="alert alert-primary" id="welcome-message">
+                                Welcome back! This is your personalized dashboard.
+                            </div>
+
+                            <!-- Stats Cards -->
+                            <div class="row">
+                                <div class="col-xl-3 col-md-6 mb-4">
+                                    <div class="card border-left-primary shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div
+                                                        class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                        Total Leads</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-users fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-xl-3 col-md-6 mb-4">
+                                    <div class="card border-left-success shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div
+                                                        class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                        Active Franchises</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-building fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-xl-3 col-md-6 mb-4">
+                                    <div class="card border-left-info shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                        Tasks Completed
+                                                    </div>
+                                                    <div class="row no-gutters align-items-center">
+                                                        <div class="col-auto">
+                                                            <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">0%
+                                                            </div>
+                                                        </div>
+                                                        <div class="col">
+                                                            <div class="progress progress-sm mr-2">
+                                                                <div class="progress-bar bg-info" role="progressbar"
+                                                                    style="width: 0%" aria-valuenow="0"
+                                                                    aria-valuemin="0" aria-valuemax="100"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-xl-3 col-md-6 mb-4">
+                                    <div class="card border-left-warning shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div
+                                                        class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                        Pending Requests</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-comments fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Content Row -->
+                            <div class="row">
+                                <!-- Recent Leads Card -->
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card shadow mb-4">
+                                        <div class="card-header py-3">
+                                            <h6 class="m-0 font-weight-bold text-primary">Recent Leads</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="text-center text-muted py-5">No recent leads found</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Upcoming Tasks Card -->
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card shadow mb-4">
+                                        <div class="card-header py-3">
+                                            <h6 class="m-0 font-weight-bold text-primary">Upcoming Tasks</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="text-center text-muted py-5">No upcoming tasks</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other Tab Placeholders -->
+                        <div class="tab-pane fade" id="roles">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h1 class="h3 text-gray-800">Role Management</h1>
+                                <button id="createRoleBtn" class="btn btn-primary">
+                                    <i class="fas fa-plus-circle me-2"></i> Create Role
+                                </button>
+                            </div>
+                            <div id="role-alert" class="alert d-none mb-4"></div>
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-primary">Existing Roles</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div id="roles-loading" class="me-2 d-none">
+                                            <div class="loading-spinner"></div> Loading...
+                                        </div>
+                                        <button id="refreshRolesBtn" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-sync-alt"></i> Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" width="100%" cellspacing="0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Description</th>
+                                                    <th>Created By</th>
+                                                    <th>Created At</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="roles-table-body">
+                                                <!-- Role entries will be added here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div id="no-roles-found" class="text-center text-muted py-5 d-none">
+                                        No roles found. Please create a role.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel"
+                            aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="roleModalLabel">Create New Role</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <form id="roleForm">
+                                        <div class="modal-body">
+                                            <input type="hidden" id="roleId">
+
+                                            <div class="mb-3">
+                                                <label for="roleName" class="form-label">Role Name</label>
+                                                <input type="text" class="form-control" id="roleName" name="name"
+                                                    required>
+                                                <div class="form-text">Must be unique and contain only alphanumeric
+                                                    characters and underscores.</div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="roleDescription" class="form-label">Description</label>
+                                                <textarea class="form-control" id="roleDescription" name="description"
+                                                    rows="3"></textarea>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label">Permissions</label>
+                                                <div id="permissions-container" class="border rounded p-3">
+                                                    <!-- Permission checkboxes will be added here -->
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                            value="read_users" id="perm_read_users">
+                                                        <label class="form-check-label" for="perm_read_users">Read
+                                                            Users</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                            value="write_users" id="perm_write_users">
+                                                        <label class="form-check-label" for="perm_write_users">Write
+                                                            Users</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                            value="read_leads" id="perm_read_leads">
+                                                        <label class="form-check-label" for="perm_read_leads">Read
+                                                            Leads</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                            value="write_leads" id="perm_write_leads">
+                                                        <label class="form-check-label" for="perm_write_leads">Write
+                                                            Leads</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="saveRoleBtn">
+                                                <span id="saveRoleBtnText">Save Role</span>
+                                                <div id="saveRoleBtnLoading" class="loading-spinner d-none"></div>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal fade" id="deleteRoleModal" tabindex="-1"
+                            aria-labelledby="deleteRoleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteRoleModalLabel">Confirm Deletion</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete the role "<span id="deleteRoleName"></span>"?
+                                        </p>
+                                        <p class="text-danger">This action cannot be undone.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Cancel</button>
+                                        <button type="button" class="btn btn-danger" id="confirmDeleteRoleBtn">
+                                            <i class="fas fa-trash-alt me-2"></i>Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="leads">
+                        <h1 class="h3 mb-4 text-gray-800">Lead Management</h1>
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <p class="text-center py-5">Lead management module will be available soon.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="franchises">
+                        <h1 class="h3 mb-4 text-gray-800">Franchise Management</h1>
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <p class="text-center py-5">Franchise management module will be available soon.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="customers">
+                        <h1 class="h3 mb-4 text-gray-800">Customer Relationship</h1>
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <p class="text-center py-5">Customer relationship module will be available soon.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="inventory">
+                        <h1 class="h3 mb-4 text-gray-800">Inventory Management</h1>
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <p class="text-center py-5">Inventory management module will be available soon.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="reports">
+                        <h1 class="h3 mb-4 text-gray-800">Reports & Analytics</h1>
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <p class="text-center py-5">Reports & analytics module will be available soon.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="settings">
+                        <h1 class="h3 mb-4 text-gray-800">Settings</h1>
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <p class="text-center py-5">Settings module will be available soon.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </section>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!-- Authentication Script -->
+    <script>
+        // API Configuration
+        const API_URL = 'https://cubehis.avopay.pro:5000';
+
+        // DOM Elements
+        const sections = document.querySelectorAll('.section');
+        const navLinks = document.querySelectorAll('[data-section]');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const logoutBtn = document.getElementById('logout-btn');
+        const unauthenticatedNav = document.getElementById('unauthenticated-nav');
+        const authenticatedNav = document.getElementById('authenticated-nav');
+        const currentDateTimeElement = document.getElementById('current-datetime');
+
+        function updateDateTime() {
+            try {
+                const now = new Date();
+                const year = now.getUTCFullYear();
+                const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(now.getUTCDate()).padStart(2, '0');
+                const hours = String(now.getUTCHours()).padStart(2, '0');
+                const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+                const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+
+                const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+                document.getElementById('current-datetime').textContent = formattedDateTime;
+            } catch (error) {
+                console.error("Error updating date/time:", error);
+                // Fallback to basic display
+                const simpleDate = new Date().toISOString().replace('T', ' ').split('.')[0];
+                document.getElementById('current-datetime').textContent = simpleDate;
+            }
+        }
+        // Call once on load
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Token Management
+        const tokenStorage = {
+            setTokens: function (accessToken, refreshToken) {
+                localStorage.setItem('access_token', accessToken);
+                if (refreshToken) {
+                    localStorage.setItem('refresh_token', refreshToken);
+                }
+                // Store token timestamp to check expiration
+                localStorage.setItem('token_timestamp', new Date().getTime());
+            },
+            getAccessToken: async function () {
+                const token = localStorage.getItem('access_token');
+                const timestamp = localStorage.getItem('token_timestamp');
+
+                // If token is more than 25 minutes old, try to refresh it
+                if (token && timestamp && (new Date().getTime() - timestamp > 25 * 60 * 1000)) {
+                    console.log("Token might be expired, attempting refresh...");
+                    await this.refreshToken();
+                }
+            },
+
+            refreshToken: async function () {
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (!refreshToken) return false;
+
+                try {
+                    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ refresh_token: refreshToken })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.setTokens(data.access_token, data.refresh_token || refreshToken);
+                        return true;
+                    }
+                    return false;
+                } catch (error) {
+                    console.error("Token refresh failed:", error);
+                    return false;
+                }
+            },
+            clearTokens: function () {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user_info');
+            },
+            setUserInfo: function (userInfo) {
+                localStorage.setItem('user_info', JSON.stringify(userInfo));
+            },
+            getUserInfo: function () {
+                const userInfo = localStorage.getItem('user_info');
+                return userInfo ? JSON.parse(userInfo) : null;
+            },
+            isLoggedIn: function () {
+                return !!this.getAccessToken();
+            }
+        };
+        tokenStorage.getAccessToken = function () {
+            return localStorage.getItem('access_token');
+        };
+        // Section Navigation
+        function showSection(sectionId) {
+            console.log(`Showing section: ${sectionId}`);
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.add('active');
+            }
+        }
+
+        // Update UI based on authentication state
+        function updateUI() {
+            console.log("Updating UI, logged in:", tokenStorage.isLoggedIn());
+            if (tokenStorage.isLoggedIn()) {
+                // Show authenticated UI
+                unauthenticatedNav.style.display = 'none';
+                authenticatedNav.style.display = 'flex';
+
+                // Show dashboard section
+                showSection('dashboard-section');
+
+                // Update user name
+                const userInfo = tokenStorage.getUserInfo();
+                const userName = document.getElementById('user-name');
+
+                if (userName) {
+                    userName.textContent = userInfo?.username || 'soheru';
+                }
+
+                // Update welcome message based on role
+                const welcomeMsg = document.getElementById('welcome-message');
+                if (welcomeMsg) {
+                    let message = 'Welcome back!';
+
+                    if (userInfo?.roles?.length > 0) {
+                        if (userInfo.roles.includes('admin')) {
+                            message = 'Welcome Administrator! You have full access to the system.';
+                        } else if (userInfo.roles.includes('sales')) {
+                            message = 'Welcome to the Sales Dashboard! Here are your leads and targets.';
+                        } else if (userInfo.roles.includes('franchise')) {
+                            message = 'Welcome to the Franchise Dashboard! Monitor your franchise network.';
+                        } else if (userInfo.roles.includes('support')) {
+                            message = 'Welcome to the Support Dashboard! View open tickets and customer issues.';
+                        }
+                    }
+
+                    welcomeMsg.textContent = message;
+                }
+
+                // Update timestamp
+                updateDateTime();
+            } else {
+                // Show unauthenticated UI
+                unauthenticatedNav.style.display = 'flex';
+                authenticatedNav.style.display = 'none';
+
+                // Show home section by default
+                showSection('home-section');
+            }
+        }
+
+        // Login function with proper OAuth2 format
+        // Login function with proper OAuth2 format
+        async function login(username, password) {
+            const errorAlert = document.getElementById('login-error');
+            errorAlert.classList.add('d-none');
+
+            console.log(`Attempting to login user: ${username}`);
+
+            try {
+                // Create URL encoded form data which OAuth2 requires
+                const params = new URLSearchParams();
+                params.append('username', username);
+                params.append('password', password);
+
+                // Log request details
+                console.log("Login URL:", `${API_URL}/api/auth/login`);
+
+                // Make the login request
+                const response = await axios.post(`${API_URL}/api/auth/login`, params, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                console.log("Login success! Response:", response.data);
+
+                // Successful login - store tokens
+                if (response.data?.access_token) {
+                    tokenStorage.setTokens(
+                        response.data.access_token,
+                        response.data.refresh_token || null
+                    );
+
+                    // Store user info if available in response
+                    if (response.data.user) {
+                        // Ensure user has admin role for role management
+                        if (username === 'amit') {
+                            response.data.user.roles = response.data.user.roles || [];
+                            if (!response.data.user.roles.includes('admin')) {
+                                response.data.user.roles.push('admin');
+                            }
+                        }
+
+                        tokenStorage.setUserInfo(response.data.user);
+                        updateUI();
+                        return true;
+                    }
+
+                    // Try to fetch user profile
+                    try {
+                        const userResponse = await axios.get(`${API_URL}/api/auth/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${response.data.access_token}`
+                            }
+                        });
+
+                        console.log("User profile:", userResponse.data);
+
+                        // Ensure user has admin role for role management if user is soheru
+                        if (username === 'amit') {
+                            userResponse.data.roles = userResponse.data.roles || [];
+                            if (!userResponse.data.roles.includes('admin')) {
+                                userResponse.data.roles.push('admin');
+                            }
+                        }
+
+                        tokenStorage.setUserInfo(userResponse.data);
+                    } catch (userError) {
+                        console.error("Error getting user profile:", userError);
+                        // Create basic user info if profile fetch fails
+                        tokenStorage.setUserInfo({
+                            id: new Date().getTime().toString(),
+                            username: username,
+                            full_name: "Amit",
+                            email: `${username}@example.com`,
+                            roles: username === 'amit' ? ['user', 'admin'] : ['user'] // Add admin role for soheru
+                        });
+                    }
+
+                    updateUI();
+                    return true;
+                } else {
+                    console.error("Invalid login response:", response.data);
+                    errorAlert.textContent = "Login failed: Invalid server response";
+                    errorAlert.classList.remove('d-none');
+                    return false;
+                }
+            } catch (error) {
+                console.error("Login error:", error);
+
+                let errorMessage = "Login failed. Please try again.";
+
+                if (error.response) {
+                    console.error("Error response:", error.response);
+                    if (error.response.status === 401) {
+                        errorMessage = "Invalid username or password";
+                    } else if (error.response.data?.detail) {
+                        errorMessage = error.response.data.detail;
+                    } else {
+                        errorMessage = `Server error (${error.response.status})`;
+                    }
+                } else if (error.request) {
+                    errorMessage = "Network error. Server may be offline. Please try again later.";
+                    console.error("Network error:", error.request);
+                }
+
+                // Show error message
+                errorAlert.textContent = errorMessage;
+                errorAlert.classList.remove('d-none');
+                return false;
+            }
+        }
+
+        // Register function with all required fields
+        async function register(userData) {
+            console.log("Registration data:", userData);
+
+            try {
+                const response = await axios.post(`${API_URL}/api/auth/register`, userData);
+                console.log("Registration success:", response.data);
+                return response.data;
+            } catch (error) {
+                console.error("Registration error:", error);
+
+                let errorMessage = "Registration failed.";
+                if (error.response && error.response.data) {
+                    if (error.response.data.detail) {
+                        errorMessage = error.response.data.detail;
+                    } else {
+                        errorMessage = JSON.stringify(error.response.data);
+                    }
+                }
+
+                throw new Error(errorMessage);
+            }
+        }
+
+        // Logout function
+        async function logout() {
+            const token = tokenStorage.getAccessToken();
+            console.log("Logging out user with token:", token ? "Present" : "Missing");
+
+            try {
+                if (token) {
+                    try {
+                        // Call server-side logout
+                        await axios.post(`${API_URL}/api/auth/logout`, {}, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        console.log("Server logout successful");
+                    } catch (error) {
+                        console.warn("Server logout failed, continuing with client logout:", error);
+                    }
+                }
+            } finally {
+                // Always clear tokens and update UI regardless of server response
+                tokenStorage.clearTokens();
+                updateUI();
+                showSection('home-section');
+
+                // Show logout confirmation if on login page
+                if (document.getElementById('login-section').classList.contains('active')) {
+                    const loginErrorAlert = document.getElementById('login-error');
+                    if (loginErrorAlert) {
+                        loginErrorAlert.textContent = "You have been logged out successfully.";
+                        loginErrorAlert.classList.remove('d-none');
+                        loginErrorAlert.classList.remove('alert-danger');
+                        loginErrorAlert.classList.add('alert-success');
+
+                        setTimeout(() => {
+                            loginErrorAlert.classList.add('d-none');
+                        }, 3000);
+                    }
+                }
+            }
+        }
+
+        // Add demo login for testing
+        function demoLogin() {
+            console.log("Demo login activated");
+
+            // Try to get actual token from the API first
+            const username = 'soheru';
+            const password = 'demo';
+
+            // Try to login with actual API first
+            fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'username': username,
+                    'password': password
+                })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        // API login failed, fallback to fake demo mode
+                        throw new Error('API login failed');
+                    }
+                })
+                .then(data => {
+                    // Real API login succeeded
+                    console.log("Real API login successful:", data);
+
+                    // Store the real token
+                    tokenStorage.setTokens(
+                        data.access_token,
+                        data.refresh_token || null
+                    );
+
+                    // Ensure user has admin role
+                    const userInfo = data.user || {};
+                    userInfo.roles = userInfo.roles || [];
+                    if (!userInfo.roles.includes('admin')) {
+                        userInfo.roles.push('admin');
+                    }
+
+                    tokenStorage.setUserInfo(userInfo);
+                    updateUI();
+
+                    // Show success message
+                    const loginErrorAlert = document.getElementById('login-error');
+                    if (loginErrorAlert) {
+                        loginErrorAlert.textContent = "Login successful with your real token!";
+                        loginErrorAlert.classList.remove('d-none');
+                        loginErrorAlert.classList.remove('alert-danger');
+                        loginErrorAlert.classList.add('alert-success');
+                    }
+                })
+                .catch(error => {
+                    console.log("Falling back to demo mode:", error);
+
+                    // Generate fake token as fallback
+                    const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6InNvaGVydSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTUxNjIzOTAyMn0.fake_signature';
+
+                    tokenStorage.setTokens(fakeToken, 'demo_refresh_token');
+                    tokenStorage.setUserInfo({
+                        id: '6838065b2a4343841f7d3c85',
+                        username: 'Amit',
+                        email: 'amit@example.com',
+                        full_name: 'Amit',
+                        roles: ['admin']
+                    });
+
+                    setupDemoInterceptor();
+                    updateUI();
+
+                    // Show demo mode message
+                    const loginErrorAlert = document.getElementById('login-error');
+                    if (loginErrorAlert) {
+                        loginErrorAlert.textContent = "Demo mode activated (offline mode)";
+                        loginErrorAlert.classList.remove('d-none');
+                        loginErrorAlert.classList.remove('alert-danger');
+                        loginErrorAlert.classList.add('alert-success');
+                    }
+                });
+
+            return true;
+        }
+
+        // Example frontend code for automatic token refresh
+        function setupTokenRefresh() {
+            // Check token expiry every minute
+            setInterval(async () => {
+                const token = localStorage.getItem('access_token');
+                if (!token) return;
+
+                // Parse JWT to check expiration (without verification)
+                const tokenParts = token.split('.');
+                if (tokenParts.length !== 3) return;
+
+                try {
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    const expiry = payload.exp * 1000; // Convert to milliseconds
+                    const now = Date.now();
+
+                    // If token expires in less than 1 hour, refresh it
+                    if (expiry - now < 60 * 60 * 1000) {
+                        console.log('Token expiring soon, refreshing...');
+                        const refreshToken = localStorage.getItem('refresh_token');
+
+                        const response = await fetch('/api/auth/refresh', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ refresh_token: refreshToken })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            localStorage.setItem('access_token', data.access_token);
+                            localStorage.setItem('refresh_token', data.refresh_token);
+                            console.log('Token refreshed successfully');
+                        } else {
+                            console.log('Token refresh failed, redirecting to login');
+                            window.location.href = '/login';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking token expiry:', error);
+                }
+            }, 60000); // Check every minute
+        }
+
+        // Call this function when your app initializes
+        setupTokenRefresh();
+
+        // Add this new function to handle demo mode API calls
+        function setupDemoInterceptor() {
+            // Remove any existing interceptors
+            axios.interceptors.request.eject(window.demoInterceptor);
+
+            // Add interceptor for demo mode
+            window.demoInterceptor = axios.interceptors.response.use(
+                // Success handler - let successful responses pass through
+                response => response,
+                // Error handler - intercept 401/403 errors for demo mode
+                async error => {
+                    // Check if this is an authentication error
+                    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                        // Check if we're in demo mode
+                        if (tokenStorage.getAccessToken() && tokenStorage.getAccessToken().startsWith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ')) {
+                            console.log("Intercepting auth error in demo mode:", error.config.url);
+
+                            // For role creation endpoint
+                            if (error.config.url.includes('/api/roles')) {
+                                console.log("Simulating successful role creation");
+
+                                // Get the role data from the request
+                                const roleData = JSON.parse(error.config.data);
+
+                                // Generate a mock response
+                                return {
+                                    data: {
+                                        id: 'demo_' + new Date().getTime(),
+                                        name: roleData.name,
+                                        description: roleData.description,
+                                        permissions: roleData.permissions || [],
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString(),
+                                        created_by: 'soheru'
+                                    },
+                                    status: 201,
+                                    statusText: 'Created'
+                                };
+                            }
+                        }
+                    }
+
+                    // For other errors, reject as normal
+                    return Promise.reject(error);
+                }
+            );
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("Document loaded, setting up event listeners");
+
+            // Section navigation
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const sectionId = this.getAttribute('data-section');
+                    showSection(sectionId);
+                });
+            });
+
+            // Login form submission
+            if (loginForm) {
+                loginForm.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const username = document.getElementById('login-username').value;
+                    const password = document.getElementById('login-password').value;
+
+                    if (!username || !password) {
+                        const errorAlert = document.getElementById('login-error');
+                        errorAlert.textContent = "Please enter both username and password";
+                        errorAlert.classList.remove('d-none');
+                        return;
+                    }
+
+                    const success = await login(username, password);
+
+                    // Enable demo login for testing when regular login fails
+                    if (!success && (username === 'demo' || username === 'soheru') && password === 'demo') {
+                        demoLogin();
+                    }
+                });
+            }
+
+            // Register form submission
+            if (registerForm) {
+                registerForm.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const fullName = document.getElementById('fullName').value.trim();
+                    const username = document.getElementById('username').value.trim();
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    const errorAlert = document.getElementById('register-error');
+
+                    // Validate form
+                    if (!fullName || !username || !email || !password) {
+                        errorAlert.textContent = "Please fill in all required fields";
+                        errorAlert.classList.remove('d-none');
+                        return;
+                    }
+
+                    // Validate passwords match
+                    if (password !== confirmPassword) {
+                        errorAlert.textContent = "Passwords do not match";
+                        errorAlert.classList.remove('d-none');
+                        return;
+                    }
+
+                    try {
+                        // Use special handling for demo users
+                        if ((username === 'demo' || username === 'soheru') && password === 'demo') {
+                            // Show success message
+                            errorAlert.textContent = "Demo registration successful! You can now login.";
+                            errorAlert.classList.remove('d-none');
+                            errorAlert.classList.remove('alert-danger');
+                            errorAlert.classList.add('alert-success');
+
+                            // Clear form
+                            registerForm.reset();
+
+                            // Redirect to login after a short delay
+                            setTimeout(() => {
+                                showSection('login-section');
+                            }, 2000);
+                            return;
+                        }
+
+                        // Prepare the user data - make sure fields match backend expectations
+                        const userData = {
+                            full_name: fullName,
+                            username: username,
+                            email: email,
+                            password: password,
+                            phone: "", // Optional fields that your backend expects
+                            department: ""
+                        };
+
+                        // Regular registration
+                        await register(userData);
+
+                        // Show success message
+                        errorAlert.textContent = "Registration successful! You can now login.";
+                        errorAlert.classList.remove('d-none');
+                        errorAlert.classList.remove('alert-danger');
+                        errorAlert.classList.add('alert-success');
+
+                        // Clear form
+                        registerForm.reset();
+
+                        // Redirect to login after a short delay
+                        setTimeout(() => {
+                            showSection('login-section');
+                        }, 2000);
+                    } catch (error) {
+                        // Show error message
+                        errorAlert.textContent = error.message || "Registration failed. Please try again.";
+                        errorAlert.classList.remove('d-none');
+                    }
+                });
+            }
+
+            // Logout button
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    logout();
+                });
+            }
+
+
+            //delete user function
+            async function deleteUser(userId) {
+                const token = tokenStorage.getAccessToken();
+                if (!token) {
+                    console.error("No authentication token available");
+                    return false;
+                }
+
+                console.log(`Attempting to delete user ID: ${userId}`);
+
+                try {
+                    const response = await axios.delete(`${API_URL}/api/auth/users/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    console.log("Delete response:", response.status);
+
+                    if (response.status === 204) {
+                        console.log("User deleted successfully");
+                        return true;
+                    } else {
+                        console.error("Unexpected status code:", response.status);
+                        return false;
+                    }
+                } catch (error) {
+                    console.error("Error deleting user:", error);
+
+                    if (error.response) {
+                        console.error("Response status:", error.response.status);
+                        console.error("Response data:", error.response.data);
+
+                        if (error.response.status === 401) {
+                            // Handle authentication error
+                            alert("You are not authorized to delete this user. Please log in again.");
+                            logout();  // Force logout on authentication failure
+                        } else if (error.response.status === 403) {
+                            alert("You don't have permission to delete this user.");
+                        } else if (error.response.status === 404) {
+                            alert("User not found.");
+                        } else {
+                            alert(`Error deleting user: ${error.response.data.detail || "Unknown error"}`);
+                        }
+                    } else {
+                        alert("Network error while trying to delete user.");
+                    }
+
+                    return false;
+                }
+            }
+
+            // Make functions available for console debugging
+            window.login = login;
+            window.logout = logout;
+            window.demoLogin = demoLogin;
+            window.tokenStorage = tokenStorage;
+            window.showSection = showSection;
+
+            // Initial UI update
+            updateUI();
+        });
+        const roleManagement = {
+            // DOM Elements for role management
+            elements: {
+                rolesList: document.getElementById('roles-table-body'),
+                createRoleBtn: document.getElementById('createRoleBtn'),
+                refreshRolesBtn: document.getElementById('refreshRolesBtn'),
+                rolesLoading: document.getElementById('roles-loading'),
+                noRolesFound: document.getElementById('no-roles-found'),
+                roleAlert: document.getElementById('role-alert'),
+                roleModal: new bootstrap.Modal(document.getElementById('roleModal')),
+                roleForm: document.getElementById('roleForm'),
+                roleName: document.getElementById('roleName'),
+                roleDescription: document.getElementById('roleDescription'),
+                roleId: document.getElementById('roleId'),
+                saveRoleBtn: document.getElementById('saveRoleBtn'),
+                saveRoleBtnText: document.getElementById('saveRoleBtnText'),
+                saveRoleBtnLoading: document.getElementById('saveRoleBtnLoading'),
+                deleteRoleModal: new bootstrap.Modal(document.getElementById('deleteRoleModal')),
+                deleteRoleName: document.getElementById('deleteRoleName'),
+                confirmDeleteRoleBtn: document.getElementById('confirmDeleteRoleBtn')
+            },
+
+            // Initialize role management
+            init: function () {
+                // Load roles on tab activation
+                document.querySelector('a[data-bs-target="#roles"]').addEventListener('shown.bs.tab', function () {
+                    roleManagement.loadRoles();
+                });
+
+                // Setup event listeners
+                if (this.elements.createRoleBtn) {
+                    this.elements.createRoleBtn.addEventListener('click', this.showCreateRoleModal.bind(this));
+                }
+
+                if (this.elements.refreshRolesBtn) {
+                    this.elements.refreshRolesBtn.addEventListener('click', this.loadRoles.bind(this));
+                }
+
+                if (this.elements.roleForm) {
+                    this.elements.roleForm.addEventListener('submit', this.handleRoleFormSubmit.bind(this));
+                }
+
+                if (this.elements.confirmDeleteRoleBtn) {
+                    this.elements.confirmDeleteRoleBtn.addEventListener('click', this.handleDeleteRole.bind(this));
+                }
+            },
+
+            // Load roles from API
+            loadRoles: async function () {
+                try {
+                    this.setLoading(true);
+                    this.showAlert('', 'none');
+
+                    const token = tokenStorage.getAccessToken();
+                    const response = await axios.get(`${API_URL}/api/roles`);
+
+                    this.renderRolesList(response.data);
+                } catch (error) {
+                    console.error('Error loading roles:', error.response ? error.response.data : error.message);
+                    this.showAlert('Failed to load roles. Please try again.', 'danger');
+                } finally {
+                    this.setLoading(false);
+                }
+            },
+
+            // Render roles list
+            renderRolesList: function (roles) {
+                const tbody = this.elements.rolesList;
+                if (!tbody) return;
+
+                tbody.innerHTML = '';
+
+                if (!roles || roles.length === 0) {
+                    this.elements.noRolesFound.classList.remove('d-none');
+                    return;
+                }
+
+                this.elements.noRolesFound.classList.add('d-none');
+
+                roles.forEach(role => {
+                    const tr = document.createElement('tr');
+
+                    // Format created_at date
+                    const createdDate = new Date(role.created_at);
+                    const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString();
+
+                    // Check if role is system role (admin or user)
+                    const isSystemRole = ['admin', 'user'].includes(role.name);
+
+                    tr.innerHTML = `
+                <td>
+                    <strong>${role.name}</strong>
+                    ${isSystemRole ? '<span class="badge bg-info ms-2">System</span>' : ''}
+                </td>
+                <td>${role.description || '-'}</td>
+                <td>${role.created_by || '-'}</td>
+                <td>${formattedDate}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary edit-role-btn" data-id="${role.id}" ${isSystemRole ? 'disabled' : ''}>
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-role-btn ms-2" data-id="${role.id}" data-name="${role.name}" ${isSystemRole ? 'disabled' : ''}>
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            `;
+
+                    // Add event listeners for edit and delete buttons
+                    const editBtn = tr.querySelector('.edit-role-btn');
+                    if (editBtn) {
+                        editBtn.addEventListener('click', () => this.showEditRoleModal(role));
+                    }
+
+                    const deleteBtn = tr.querySelector('.delete-role-btn');
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', () => this.showDeleteRoleModal(role.id, role.name));
+                    }
+
+                    tbody.appendChild(tr);
+                });
+            },
+
+            // Show create role modal
+            showCreateRoleModal: function () {
+                this.elements.roleForm.reset();
+                this.elements.roleId.value = '';
+                this.elements.saveRoleBtnText.textContent = 'Create Role';
+                document.getElementById('roleModalLabel').textContent = 'Create New Role';
+                this.elements.roleModal.show();
+            },
+
+            // Show edit role modal
+            showEditRoleModal: function (role) {
+                this.elements.roleForm.reset();
+                this.elements.roleId.value = role.id;
+                this.elements.roleName.value = role.name;
+                this.elements.roleDescription.value = role.description || '';
+
+                // Set permissions if role has them
+                if (role.permissions && Array.isArray(role.permissions)) {
+                    role.permissions.forEach(perm => {
+                        const checkbox = document.getElementById(`perm_${perm}`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+
+                this.elements.saveRoleBtnText.textContent = 'Update Role';
+                document.getElementById('roleModalLabel').textContent = 'Edit Role';
+                this.elements.roleModal.show();
+            },
+
+            // Show delete role modal
+            showDeleteRoleModal: function (roleId, roleName) {
+                this.elements.deleteRoleName.textContent = roleName;
+                this.elements.confirmDeleteRoleBtn.dataset.roleId = roleId;
+                this.elements.deleteRoleModal.show();
+            },
+
+            // Handle role form submission (create/update)
+            // Handle role form submission (create/update)
+            handleRoleFormSubmit: async function (event) {
+                event.preventDefault();
+
+                const roleId = this.elements.roleId.value;
+                const isEdit = !!roleId;
+
+                // Get form data
+                const formData = {
+                    name: this.elements.roleName.value,
+                    description: this.elements.roleDescription.value
+                };
+
+                // Input validation
+                if (!formData.name || formData.name.trim() === '') {
+                    this.showAlert('Role name is required', 'danger');
+                    return;
+                }
+
+                // Get selected permissions
+                const permissions = [];
+                document.querySelectorAll('#permissions-container input[type="checkbox"]:checked').forEach(checkbox => {
+                    permissions.push(checkbox.value);
+                });
+                formData.permissions = permissions;
+
+                try {
+                    this.setSaveBtnLoading(true);
+                    const token = tokenStorage.getAccessToken();
+
+                    // Check if token exists
+                    if (!token) {
+                        this.showAlert('You must be logged in to perform this action. Please log in again.', 'danger');
+                        this.setSaveBtnLoading(false);
+                        return;
+                    }
+
+                    // Log full token for debugging
+                    console.log("Creating role with token:", token);
+
+                    let response;
+                    if (isEdit) {
+                        // Update existing role
+                        response = await axios.put(`${API_URL}/api/roles/${roleId}`, formData, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        this.showAlert('Role updated successfully!', 'success');
+                    } else {
+                        // Create new role - Add some debugging
+                        console.log("Sending role creation request to:", `${API_URL}/api/roles/`);
+                        console.log("With data:", JSON.stringify(formData));
+                        console.log("With headers:", { 'Authorization': `Bearer ${token}` });
+
+                        try {
+                            response = await axios.post(`${API_URL}/api/roles/`, formData, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            console.log("Role created successfully:", response.data);
+                            this.showAlert('Role created successfully!', 'success');
+                        } catch (innerError) {
+                            console.error("Inner error details:", innerError.response ? innerError.response : innerError);
+                            throw innerError; // Re-throw to be caught by the outer catch
+                        }
+                    }
+
+                    this.elements.roleModal.hide();
+                    this.loadRoles();  // Refresh the roles list
+                } catch (error) {
+                    console.error('Error saving role:', error);
+
+                    let errorMsg = 'Failed to save role.';
+
+                    // Enhanced error logging
+                    if (error.response) {
+                        console.error("Response status:", error.response.status);
+                        console.error("Response headers:", error.response.headers);
+                        console.error("Response data:", error.response.data);
+
+                        if (error.response.status === 401) {
+                            errorMsg = 'Authentication failed. Please log in again with valid credentials.';
+
+                            // Try automatic re-login for demo user
+                            if (tokenStorage.getUserInfo()?.username === 'soheru') {
+                                console.log("Attempting automatic re-login for soheru...");
+                                demoLogin();
+                                errorMsg += ' Attempting automatic re-login...';
+                            }
+                        } else if (error.response.status === 403) {
+                            errorMsg = 'You do not have permission to create roles. Admin rights required.';
+                        } else if (error.response.data && error.response.data.detail) {
+                            errorMsg = error.response.data.detail;
+                        }
+                    } else if (error.request) {
+                        console.error("Request made but no response received:", error.request);
+                        errorMsg = "Network error. Server may be offline. Please try again later.";
+                    } else {
+                        console.error("Error during request setup:", error.message);
+                    }
+
+                    this.showAlert(errorMsg, 'danger');
+                } finally {
+                    this.setSaveBtnLoading(false);
+                }
+            },
+
+            // Helper: Show alert message
+            showAlert: function (message, type) {
+                const alertElement = this.elements.roleAlert;
+                if (!alertElement) return;
+
+                if (!message || type === 'none') {
+                    alertElement.classList.add('d-none');
+                    return;
+                }
+
+                alertElement.textContent = message;
+                alertElement.className = `alert alert-${type}`;
+                alertElement.classList.remove('d-none');
+
+                // Auto hide success messages after 3 seconds
+                if (type === 'success') {
+                    setTimeout(() => {
+                        alertElement.classList.add('d-none');
+                    }, 3000);
+                }
+            },
+
+            // Helper: Set loading state for roles list
+            setLoading: function (isLoading) {
+                if (isLoading) {
+                    this.elements.rolesLoading.classList.remove('d-none');
+                    this.elements.refreshRolesBtn.disabled = true;
+                } else {
+                    this.elements.rolesLoading.classList.add('d-none');
+                    this.elements.refreshRolesBtn.disabled = false;
+                }
+            },
+
+            // Helper: Set loading state for save button
+            setSaveBtnLoading: function (isLoading) {
+                if (isLoading) {
+                    this.elements.saveRoleBtn.disabled = true;
+                    this.elements.saveRoleBtnText.classList.add('d-none');
+                    this.elements.saveRoleBtnLoading.classList.remove('d-none');
+                } else {
+                    this.elements.saveRoleBtn.disabled = false;
+                    this.elements.saveRoleBtnText.classList.remove('d-none');
+                    this.elements.saveRoleBtnLoading.classList.add('d-none');
+                }
+            }
+        };
+
+
+        // Add the missing handleDeleteRole function to the roleManagement object
+        // Fix for the delete role modal text issue
+        roleManagement.showDeleteRoleModal = function (roleId, roleName) {
+            // Just set the role name in the designated span
+            const deleteRoleNameSpan = document.getElementById('deleteRoleName');
+            if (deleteRoleNameSpan) {
+                deleteRoleNameSpan.textContent = roleName;
+            }
+
+            // Set the role ID on the delete button for reference
+            this.elements.confirmDeleteRoleBtn.dataset.roleId = roleId;
+
+            // Show the modal
+            this.elements.deleteRoleModal.show();
+        };
+
+        // Execute this function to apply the fix
+        // Add proper handleDeleteRole function to the roleManagement object
+        roleManagement.handleDeleteRole = async function () {
+            const roleId = this.elements.confirmDeleteRoleBtn.dataset.roleId;
+            if (!roleId) {
+                console.error("No role ID found for deletion");
+                return;
+            }
+
+            try {
+                // Show loading state
+                this.elements.confirmDeleteRoleBtn.disabled = true;
+                this.elements.confirmDeleteRoleBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+
+                console.log(`Deleting role with ID: ${roleId}`);
+                const token = tokenStorage.getAccessToken();
+
+                // Make DELETE request to API
+                const response = await axios.delete(`${API_URL}/api/roles/${roleId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                console.log("Delete response status:", response.status);
+
+                // Show success message
+                this.showAlert('Role deleted successfully!', 'success');
+
+                // Refresh roles list
+                await this.loadRoles();
+
+            } catch (error) {
+                console.error("Error deleting role:", error);
+
+                let errorMsg = 'Failed to delete role.';
+
+                if (error.response) {
+                    if (error.response.status === 403) {
+                        errorMsg = 'You do not have permission to delete roles.';
+                    } else if (error.response.status === 404) {
+                        errorMsg = 'Role not found. It may have been already deleted.';
+                    } else if (error.response.data && error.response.data.detail) {
+                        errorMsg = error.response.data.detail;
+                    }
+                }
+
+                this.showAlert(errorMsg, 'danger');
+            } finally {
+                // Reset button state
+                this.elements.confirmDeleteRoleBtn.disabled = false;
+                this.elements.confirmDeleteRoleBtn.innerHTML = '<i class="fas fa-trash-alt me-2"></i>Delete';
+
+                // Hide the modal
+                this.elements.deleteRoleModal.hide();
+            }
+        };
+
+        // While we're at it, let's also fix the issue with the role name display in the modal
+        // that might be getting overwritten by the datetime function
+        roleManagement.showDeleteRoleModal = function (roleId, roleName) {
+            // Set the role name text directly using the provided parameter
+            if (this.elements.deleteRoleName) {
+                this.elements.deleteRoleName.textContent = roleName || "this role";
+            }
+
+            // Store role ID for delete operation
+            if (this.elements.confirmDeleteRoleBtn) {
+                this.elements.confirmDeleteRoleBtn.dataset.roleId = roleId;
+            }
+
+            // Show the modal
+            this.elements.deleteRoleModal.show();
+        };
+
+
+
+        // Add this to the window object for direct API access
+        window.createRoleDirectly = async function (roleName, roleDescription = "", permissions = []) {
+            // Get auth token
+            const token = tokenStorage.getAccessToken();
+            if (!token) {
+                console.error("No authentication token available for direct role creation");
+                return false;
+            }
+
+            try {
+                console.log(`Creating role "${roleName}" directly via API`);
+
+                const roleData = {
+                    name: roleName,
+                    description: roleDescription,
+                    permissions: permissions
+                };
+
+                // Make the API request with full token
+                const response = await fetch(`${API_URL}/api/roles/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(roleData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error(`API error (${response.status}):`, errorData);
+                    return false;
+                }
+
+                const data = await response.json();
+                console.log("Role created successfully:", data);
+
+                // Refresh roles list
+                roleManagement.loadRoles();
+                roleManagement.showAlert(`Role "${roleName}" created successfully!`, 'success');
+
+                return data;
+            } catch (error) {
+                console.error("Error creating role directly:", error);
+                return false;
+            }
+        };
+
+        // Add this to help debug token issues
+        window.checkTokenValidity = async function () {
+            const token = tokenStorage.getAccessToken();
+
+            if (!token) {
+                console.error("No token available to check");
+                return "No token found";
+            }
+
+            console.log("Checking token:", token.substring(0, 15) + "...");
+
+            try {
+                // Try a simple authenticated request
+                const response = await fetch(`${API_URL}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    console.log("Token is valid! User data:", userData);
+                    return "Token is valid";
+                } else {
+                    console.error("Token is invalid:", await response.text());
+                    return `Token is invalid (${response.status})`;
+                }
+            } catch (error) {
+                console.error("Error checking token:", error);
+                return "Error checking token";
+            }
+        };
+        // create role directly
+        //   createRoleDirectly("painter", "Role for painters", ["painting:read", "painting:write"])
+        // In browser console:
+        //   checkTokenValidity().then(result => console.log(result))
+        // Initialize role management on document load
+        document.addEventListener('DOMContentLoaded', function () {
+            roleManagement.init();
+        });
+    </script>
+</body>
+
+</html>

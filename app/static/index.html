@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2B CRM - Lead Integrations</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./css/styles.css">
+    <style>
+                :root {
+            --primary: #4e73df;
+            --primary-dark: #2e59d9;
+            --secondary: #858796;
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-project-diagram me-2"></i>
+                B2B CRM
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="dashboard-link">
+                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="leads-link">
+                            <i class="fas fa-users me-1"></i> Leads
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" id="integrations-link">
+                            <i class="fas fa-plug me-1"></i> Integrations
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item me-3">
+                        <div class="d-flex flex-column align-items-end">
+                            <p id="current-datetime" class="my-1 text-light">2025-06-04 11:44:41</p>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="user-name-display" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i> <span id="user-name">soheru</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logout-btn"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container main-content mt-5 pt-3">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center page-header">
+                    <h1 class="h3">Lead Integrations</h1>
+                    <div>
+                        <button id="refresh-leads-btn" class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh Data
+                        </button>
+                        <button id="new-integration-btn" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i> New Integration
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Cards -->
+        <div class="row mb-4">
+            <div class="col-md-6 mb-4">
+                <div class="card integration-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="integration-icon bg-primary text-white">
+                                <i class="fas fa-table"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="card-title mb-0">Google Sheets Integration</h5>
+                                <p class="text-muted small mb-0">Import leads from Google Sheets</p>
+                            </div>
+                        </div>
+                        <p class="card-text">Connect your Google Sheets to automatically import leads. Map columns to lead fields and schedule regular imports.</p>
+                        <button id="sheets-integration-btn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plug me-1"></i> Configure
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card integration-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="integration-icon bg-primary text-white">
+                                <i class="fab fa-facebook"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="card-title mb-0">Meta Ads Integration</h5>
+                                <p class="text-muted small mb-0">Import leads from Facebook & Instagram</p>
+                            </div>
+                        </div>
+                        <p class="card-text">Connect your Meta Ads account to automatically import leads from Lead Generation campaigns on Facebook and Instagram.</p>
+                        <button id="meta-integration-btn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plug me-1"></i> Configure
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Statistics -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Lead Sources Statistics</h5>
+                        <span class="badge bg-primary" id="total-sources-badge">0 Sources</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr id="leads-table-header">
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Source</th>
+                                        <th>Created</th>
+                                        <th>Assigned To</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sources-table-body">
+                                    <!-- Sources will be added here -->
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">Loading sources...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="no-sources-message" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i> No lead sources configured yet.
+                        </div>
+                        <div id="sources-loading" class="text-center py-4 d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading lead sources...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- Enhanced Filter Section - Add to your existing card header -->
+<div class="filter-section mb-3">
+    <div class="row g-2">
+        <div class="col-md-3">
+            <label for="source-filter" class="form-label">Source</label>
+            <select id="source-filter" class="form-select form-select-sm">
+                <option value="">All Sources</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="campaign-filter" class="form-label">Campaign</label>
+            <select id="campaign-filter" class="form-select form-select-sm">
+                <option value="">All Campaigns</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="assigned-to-filter" class="form-label">Assigned To</label>
+            <select id="assigned-to-filter" class="form-select form-select-sm">
+                <option value="">All Users</option>
+                <option value="unassigned">Unassigned</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="lead-search" class="form-label">Search</label>
+            <input type="text" class="form-control form-control-sm" id="lead-search" placeholder="Name, Email, Phone...">
+        </div>
+    </div>
+    <div class="text-end mt-2">
+        <button id="reset-filters-btn" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-undo me-1"></i> Reset Filters
+        </button>
+        <button id="apply-filters-btn" class="btn btn-sm btn-primary">
+            <i class="fas fa-filter me-1"></i> Apply Filters
+        </button>
+    </div>
+</div>
+        <!-- Upcoming Reminders Panel -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-bell"></i> Upcoming Reminders</h5>
+                        <button class="btn btn-outline-dark btn-sm" id="refresh-reminders-btn">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-2">
+                        <ul class="list-group list-group-flush" id="reminders-list">
+                            <li class="list-group-item text-muted">No reminders.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+ <!-- Recent Leads -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Leads</h5>
+                        <div>
+                            <select id="source-filter" class="form-select form-select-sm d-inline-block me-2" style="width: auto;">
+                                <option value="">All Sources</option>
+                            </select>
+                            <span class="badge bg-primary" id="total-leads-badge">0 Leads</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Source</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                        <th>Follow-ups</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leads-table-body">
+                                    <!-- Leads will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="no-leads-message" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i> No leads found.
+                        </div>
+                        <div id="leads-loading" class="text-center py-4 d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading leads...</p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <span class="text-muted">Showing <span id="page-info">0-0 of 0</span> leads</span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button id="prev-page-btn" class="btn btn-sm btn-outline-secondary me-2" disabled>
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                                <button id="next-page-btn" class="btn btn-sm btn-outline-secondary">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Follow-up Modal -->
+    <div class="modal fade" id="followup-modal" tabindex="-1" aria-labelledby="followupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="followup-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="followupModalLabel">Add Follow-up / Reminder</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="followup-lead-id">
+                        <div class="mb-3">
+                            <label for="followup-note" class="form-label">Follow-up Note</label>
+                            <textarea class="form-control" id="followup-note" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reminder-time" class="form-label">Set Reminder (optional)</label>
+                            <input type="datetime-local" class="form-control" id="reminder-time">
+                            <div class="form-text">You will be notified around this time.</div>
+                        </div>
+                        <div>
+                            <h6 class="mb-2">Previous Follow-ups</h6>
+                            <ul class="list-group" id="followup-notes-list">
+                                <!-- Fetched follow-up notes will appear here -->
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-plus-circle me-1"></i> Add Follow-up
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Sheets Integration Modal -->
+    <div class="modal fade" id="google-sheets-modal" tabindex="-1" aria-labelledby="googleSheetsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="googleSheetsModalLabel">Google Sheets Integration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="google-sheets-form">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Make sure your Google Sheet is shared with the service account email.
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="spreadsheet-url" class="form-label">Google Sheets URL</label>
+                            <input type="text" class="form-control" id="spreadsheet-url" 
+                                placeholder="https://docs.google.com/spreadsheets/d/...">
+                            <div class="form-text">Paste the full URL of your Google Sheet</div>
+                        </div>
+                        
+                        <!-- Hidden fields for default values -->
+                        <input type="hidden" id="sheet-name" value="Sheet1">
+                        <input type="hidden" id="header-row" value="1">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm d-none" id="sheets-spinner" role="status" aria-hidden="true"></span>
+                            Connect Google Sheet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Meta Ads Integration Modal -->
+    <div class="modal fade" id="meta-ads-modal" tabindex="-1" aria-labelledby="metaAdsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="metaAdsModalLabel">Meta Ads Integration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="meta-ads-form">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You'll need a Meta Business account with access to Lead Generation ads.
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="access-token" class="form-label">Access Token</label>
+                            <input type="text" class="form-control" id="access-token" placeholder="Enter Meta access token">
+                            <div class="form-text">Long-lived access token with leads_retrieval permission</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ad-account-id" class="form-label">Ad Account ID</label>
+                            <div class="input-group">
+                                <span class="input-group-text">act_</span>
+                                <input type="text" class="form-control" id="ad-account-id" placeholder="123456789">
+                            </div>
+                            <div class="form-text">Your Meta Ads account ID (numbers only)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="form-id" class="form-label">Lead Form ID (Optional)</label>
+                            <input type="text" class="form-control" id="form-id" placeholder="Leave blank to import from all forms">
+                            <div class="form-text">Specify a form ID to import leads from a specific form only</div>
+                        </div>
+
+                        <h6 class="mb-3">Field Mapping</h6>
+                        <p class="text-muted small mb-3">Map Meta form fields to lead fields</p>
+
+                        <div class="meta-mapping-container">
+                            <div class="mapping-row mb-2">
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <select class="form-select mapping-field">
+                                            <option value="full_name">Full Name</option>
+                                            <option value="email">Email</option>
+                                            <option value="phone">Phone</option>
+                                            <option value="company">Company</option>
+                                            <option value="address">Address</option>
+                                            <option value="city">City</option>
+                                            <option value="state">State</option>
+                                            <option value="country">Country</option>
+                                            <option value="zip_code">Zip Code</option>
+                                            <option value="notes">Notes</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control mapping-column" placeholder="Meta Form Field">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-outline-danger remove-mapping-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="button" id="add-meta-mapping-btn" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Add Field Mapping
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm d-none" id="meta-spinner" role="status" aria-hidden="true"></span>
+                            Connect Meta Ads
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<div class="modal fade" id="lead-assignment-modal" tabindex="-1" aria-labelledby="leadAssignmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="leadAssignmentModalLabel">
+            <i class="fas fa-user-check me-2"></i>
+            Assign Lead
+            </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body py-4">
+        <div class="mb-3">
+        <div class="alert alert-info d-flex align-items-center mb-0" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <span>
+            You are about to assign: <strong id="assign-lead-name">[Lead Name]</strong>
+            </span>
+        </div>
+        </div>
+        <form id="lead-assignment-form">
+        <input type="hidden" id="assign-lead-id" />
+        <div class="mb-3">
+            <label for="role-select" class="form-label">Select Role <span class="text-danger">*</span></label>
+            <select class="form-select" id="role-select" required>
+            <option value="" selected disabled>Select a role</option>
+            <option value="sales_executive">Sales Executive</option>
+            <option value="sales_manager">Sales Manager</option>
+            <option value="account_manager">Account Manager</option>
+            <option value="admin">Administrator</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="sales-executive-select" class="form-label">Assign to Team Member <span class="text-danger">*</span></label>
+            <select class="form-select" id="sales-executive-select" required>
+            <option value="" selected disabled>Select a team member</option>
+            <!-- Dynamically filled -->
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="assignment-notes" class="form-label">Assignment Notes <span class="text-muted">(optional)</span></label>
+            <textarea class="form-control" id="assignment-notes" rows="3" placeholder="Add any relevant notes for the assignee"></textarea>
+        </div>
+        <div class="mt-4 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" id="confirm-assign-btn">
+            <span class="spinner-border spinner-border-sm d-none" id="assign-spinner" role="status" aria-hidden="true"></span>
+            <i class="fas fa-user-plus me-1"></i> Assign Lead
+            </button>
+        </div>
+        </form>
+    </div>
+    </div>
+</div>
+</div>
+
+<!-- Lead Details Modal (if not already present) -->
+<div class="modal fade lead-details-modal" id="lead-details-modal" tabindex="-1" aria-labelledby="leadDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leadDetailsModalLabel">Lead Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="lead-details-body">
+                <!-- Lead details will be displayed here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lead Assignment Modal (single, correct version) -->
+<div class="modal fade" id="lead-assignment-modal" tabindex="-1" aria-labelledby="leadAssignmentModalLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title" id="leadAssignmentModalLabel">Assign Lead</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="mb-3">
+        <p>You are about to assign: <strong id="assign-lead-name">Lead Name</strong></p>
+        </div>
+        <div class="mb-3">
+        <label for="role-select" class="form-label">Select Role</label>
+        <select class="form-select" id="role-select">
+            <option value="" selected disabled>Select a role</option>
+            <option value="sales_executive">Sales Executive</option>
+            <option value="sales_manager">Sales Manager</option>
+            <option value="account_manager">Account Manager</option>
+            <option value="admin">Administrator</option>
+        </select>
+        </div>
+        <div class="mb-3">
+        <label for="sales-executive-select" class="form-label">Select Team Member</label>
+        <select class="form-select" id="sales-executive-select">
+            <option value="" selected disabled>Select a team member</option>
+            <!-- team members will be dynamically filled -->
+        </select>
+        </div>
+        <div class="mb-3">
+        <label for="assignment-notes" class="form-label">Assignment Notes (Optional)</label>
+        <textarea class="form-control" id="assignment-notes" rows="3" placeholder="Add any relevant notes for the sales executive"></textarea>
+        </div>
+        <input type="hidden" id="assign-lead-id" value="">
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-assign-btn">
+        <span class="spinner-border spinner-border-sm d-none" id="assign-spinner" role="status" aria-hidden="true"></span>
+        Assign Lead
+        </button>
+    </div>
+    </div>
+    </div>
+</div>
+
+
+<!-- Lead Details Modal -->
+<div class="modal fade" id="lead-details-modal" tabindex="-1" aria-labelledby="leadDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leadDetailsModalLabel">Lead Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="lead-details-body">
+                <!-- Lead details will be displayed here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Manual Delete Modal -->
+    <div class="modal fade" id="delete-source-modal" tabindex="-1" aria-labelledby="deleteSourceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteSourceModalLabel">Delete Lead Source</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Enter the source ID to delete:</p>
+                    <input type="text" id="source-id-input" class="form-control">
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Warning: This action cannot be undone.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn">
+                        <i class="fas fa-trash me-1"></i> Delete Source
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast-notification" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span id="toast-message">Operation completed successfully.</span>
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Axios for API calls -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="./js/script.js"></script>
+</body>
+</html>

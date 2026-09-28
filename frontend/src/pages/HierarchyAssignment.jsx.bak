@@ -1,0 +1,1163 @@
+/*
+ * HierarchyAssignment.jsx
+ *
+ * Authentication notes:
+ * - Token is stored in localStorage as 'token' and 'access_token'
+ * - User information is stored in localStorage under 'user' key
+ * - The user ID is in the 'id' field, not 'user_id' field
+ */
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FaUserTie, FaUsers, FaFilter, FaSync, FaDownload, FaExclamationTriangle } from 'react-icons/fa';
+import { BsPersonCheck, BsPersonFill } from 'react-icons/bs';
+import * as XLSX from 'xlsx';
+
+// Helper function to get auth headers - consistent with other components
+const getAuthHeaders = () => {
+  // Try both token formats used in the app
+  const accessToken = localStorage.getItem('access_token');
+  const token = localStorage.getItem('token');
+  const jwtToken = localStorage.getItem('jwt');
+  const finalToken = accessToken || token || jwtToken;
+  
+  if (!finalToken) {
+    console.warn('No authentication token found in localStorage (checked: token, access_token, jwt)');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  
+  if (finalToken) {
+    if (finalToken.startsWith('Bearer ')) {
+      headers['Authorization'] = finalToken;
+    } else {
+      headers['Authorization'] = `Bearer ${finalToken}`;
+    }
+  }
+  
+  return headers;
+};
+
+// Helper function to get current user data consistently
+const getCurrentUser = () => {
+  try {
+    // Get user from localStorage which is how the app stores it after login
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      console.error('No user data found in localStorage');
+      return null;
+    }
+    
+    const user = JSON.parse(userStr);
+    
+    // Extract user ID (could be in id field or user_id field)
+    const userId = user.id || user.user_id;
+    
+    if (!userId) {
+      console.error('User object missing ID field:', user);
+      
+      // Try to extract from JWT token as fallback
+      try {
+        const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+        if (token) {
+          const tokenParts = token.split('.');
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]));
+            if (payload.sub) {
+              console.log('Extracted user ID from token sub field:', payload.sub);
+              return {
+                user_id: payload.sub,
+                id: payload.sub,
+                username: user.username || payload.username || '',
+                name: user.full_name || user.name || payload.username || 'User',
+                email: user.email || payload.email || '',
+                roles: user.roles || payload.roles || []
+              };
+            }
+          }
+        }
+      } catch (tokenError) {
+        console.error('Failed to extract user info from token:', tokenError);
+      }
+      
+      return null;
+    }
+    
+    return {
+      user_id: userId, // Ensure both fields are present for API consistency
+      id: userId,
+      username: user.username || '',
+      name: user.full_name || user.name || user.username || 'User',
+      email: user.email || '',
+      roles: user.roles || []
+    };
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    return null;
+  }
+};
+
+// Helper function to extract direct subordinates for a user from the hierarchy
+const extractDirectSubordinates = (hierarchy, userId) => {
+  // Case 1: User is at the top level
+  const topLevelUser = hierarchy.find(node => node.user_id === userId);
+  if (topLevelUser) {
+    return topLevelUser.subordinates || [];
+  }
+  
+  // Case 2: User is somewhere in the hierarchy
+  for (const topNode of hierarchy) {
+    const findInSubordinates = (nodes) => {
+      for (const node of nodes) {
+        if (node.user_id === userId) {
+          return node.subordinates || [];
+        }
+        
+        if (node.subordinates && node.subordinates.length > 0) {
+          const result = findInSubordinates(node.subordinates);
+          if (result.length > 0) return result;
+        }
+      }
+      return [];
+    };
+    
+    if (topNode.subordinates && topNode.subordinates.length > 0) {
+      const result = findInSubordinates(topNode.subordinates);
+      if (result.length > 0) return result;
+    }
+  }
+  
+  return [];
+};
+
+// Helper function to fetch subordinate IDs (for loading leads)
+const fetchSubordinateIds = async (managerId, authHeaders) => {
+  try {
+    // First try getting from hierarchy API
+    const response = await axios.get(`https://cubehis.avopay.pro:5000/api/assigned-leads/hierarchy`, {
+      headers: authHeaders
+    });
+    
+    if (response.data?.hierarchy) {
+      const subs = extractDirectSubordinates(response.data.hierarchy, managerId);
+      return subs.map(sub => sub.user_id).filter(id => id); // Filter out empty IDs
+    }
+  } catch (error) {
+    console.log('Could not get subordinates from hierarchy:', error.message);
+    
+    // Try the direct subordinates endpoint
+    try {
+      const response = await axios.get(`https://cubehis.avopay.pro:5000/api/assigned-leads/subordinates/${managerId}`, {
+        headers: authHeaders
+      });
+      
+      if (response.data?.subordinates) {
+        return response.data.subordinates.map(sub => sub.user_id).filter(id => id);
+      }
+    } catch (secondError) {
+      console.log('Could not get subordinates from direct endpoint:', secondError.message);
+    }
+  }
+  
+  return []; // Return empty array if all approaches fail
+};
+
+const HierarchyAssignment = () => {
+    const [subordinates, setSubordinates] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [leads, setLeads] = useState([]);
+    const [unassignedLeads, setUnassignedLeads] = useState([]);
+    const [totalLeads, setTotalLeads] = useState(0);
+    const [totalUnassigned, setTotalUnassigned] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+    const [statistics, setStatistics] = useState(null);
+    const [filters, setFilters] = useState({
+        status: '',
+        source: '',
+        dateRange: ''
+    });
+
+    const API_BASE_URL = 'https://cubehis.avopay.pro:5000';
+
+    useEffect(() => {
+        // Get current user using the helper function
+        const user = getCurrentUser();
+        if (user) {
+            console.log('Current user from localStorage:', user);
+            setCurrentUser(user);
+            
+            // Use the consistent userId for all API calls
+            const userId = user.id;
+            
+            try {
+                // Load all data based on the current user ID
+                loadSubordinates(userId);
+                loadStatistics();
+                loadUnassignedLeads();
+                loadAllSubordinateLeads(userId);
+            } catch (error) {
+                console.error('Error parsing token:', error);
+            }
+        }
+    }, []);
+
+    // Watch for unassigned toggle changes
+    useEffect(() => {
+        if (showUnassignedOnly) {
+            loadUnassignedLeads();
+        } else if (selectedUser) {
+            loadLeads(selectedUser.user_id);
+        } else if (currentUser) {
+            loadAllSubordinateLeads(currentUser.user_id);
+        }
+    }, [showUnassignedOnly]);
+
+    // Helper function to extract subordinate IDs from hierarchy data
+    const fetchSubordinateIds = async (userId) => {
+        try {
+            // Try first approach: hierarchical data
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/assigned-leads/hierarchy`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.data && response.data.hierarchy) {
+                    // Function to find user node and extract all subordinate IDs recursively
+                    const findUserAndGetSubordinateIds = (nodes, targetId) => {
+                        for (const node of nodes) {
+                            if (node.user_id === targetId) {
+                                const ids = [];
+                                const collectIds = (subNodes) => {
+                                    if (!subNodes) return;
+                                    for (const sub of subNodes) {
+                                        if (sub.user_id) {
+                                            ids.push(sub.user_id);
+                                        }
+                                        if (sub.subordinates && sub.subordinates.length > 0) {
+                                            collectIds(sub.subordinates);
+                                        }
+                                    }
+                                };
+                                
+                                if (node.subordinates) {
+                                    collectIds(node.subordinates);
+                                }
+                                
+                                return ids;
+                            }
+                            
+                            if (node.subordinates && node.subordinates.length > 0) {
+                                const result = findUserAndGetSubordinateIds(node.subordinates, targetId);
+                                if (result && result.length > 0) {
+                                    return result;
+                                }
+                            }
+                        }
+                        return [];
+                    };
+                    
+                    const subIds = findUserAndGetSubordinateIds(response.data.hierarchy, userId);
+                    if (subIds && subIds.length > 0) {
+                        return subIds;
+                    }
+                }
+            } catch (err) {
+                console.log('Could not get subordinate IDs from hierarchy:', err.message);
+            }
+            
+            // Try second approach: direct endpoint
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/users/team-members/${userId}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.data && Array.isArray(response.data)) {
+                    return response.data.map(user => user.user_id || user.id).filter(Boolean);
+                }
+            } catch (err) {
+                console.log('Could not get subordinate IDs from team-members endpoint:', err.message);
+            }
+            
+            // Try third approach: another endpoint
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/users`, {
+                    headers: getAuthHeaders()
+                });
+                
+                // This is a fallback to get all users - in a real app, we'd filter to get actual subordinates
+                if (response.data && Array.isArray(response.data)) {
+                    // Exclude the current user
+                    return response.data
+                        .filter(user => user.id !== userId && user.user_id !== userId)
+                        .map(user => user.user_id || user.id)
+                        .filter(Boolean);
+                }
+            } catch (err) {
+                console.log('Could not get users as fallback:', err.message);
+            }
+            
+            return [];
+        } catch (error) {
+            console.error('Failed to fetch subordinate IDs:', error);
+            return [];
+        }
+    };
+
+    const loadSubordinates = async (userId) => {
+        if (!userId) {
+            console.error('Cannot load subordinates: No user ID provided');
+            setSubordinates([]);
+            setLoading(false);
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            console.log('Loading subordinates for user ID:', userId);
+            
+            // Try to load from the hierarchy endpoint first (which might be more commonly available)
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/assigned-leads/hierarchy`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.data.hierarchy) {
+                    // Extract direct subordinates for the current user
+                    const findDirectSubordinates = (nodes, targetUserId) => {
+                        for (const node of nodes) {
+                            if (node.user_id === targetUserId) {
+                                return node.subordinates || [];
+                            }
+                            
+                            if (node.subordinates && node.subordinates.length > 0) {
+                                const found = findDirectSubordinates(node.subordinates, targetUserId);
+                                if (found.length > 0) return found;
+                            }
+                        }
+                        return [];
+                    };
+                    
+                    const directSubordinates = findDirectSubordinates(response.data.hierarchy, userId);
+                    console.log('Found subordinates from hierarchy:', directSubordinates.length);
+                    setSubordinates(directSubordinates);
+                    return;
+                }
+            } catch (hierarchyError) {
+                console.log('Could not load from hierarchy, trying subordinates endpoint:', hierarchyError.message);
+            }
+            
+            // If hierarchy approach didn't work, try the direct subordinates endpoint
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/assigned-leads/subordinates/${userId}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.data && response.data.subordinates) {
+                    console.log('Found subordinates from direct endpoint:', response.data.subordinates.length);
+                    setSubordinates(response.data.subordinates);
+                    return;
+                }
+            } catch (directError) {
+                console.log('Could not load from direct endpoint, trying alternative:', directError.message);
+            }
+            
+            // Try alternative endpoint
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/users/team-members/${userId}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.data && Array.isArray(response.data)) {
+                    console.log('Found team members:', response.data.length);
+                    
+                    // Transform the data to match the expected format
+                    const formattedSubordinates = response.data.map(user => ({
+                        user_id: user.user_id || user.id,
+                        name: user.full_name || user.name || user.username,
+                        role_name: user.role || user.role_name || 'team_member',
+                        has_subordinates: false, // Default assumption
+                        assigned_leads_count: user.assigned_leads_count || 0
+                    }));
+                    
+                    setSubordinates(formattedSubordinates);
+                    return;
+                }
+            } catch (alternativeError) {
+                console.log('Could not load from team-members endpoint:', alternativeError.message);
+            }
+            
+            // Last resort - get all users and filter out the current user
+            try {
+                const response = await axios.get(`${API_BASE_URL}/api/users`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.data && Array.isArray(response.data)) {
+                    console.log('Using all users as fallback:', response.data.length);
+                    
+                    // Filter out the current user and format the data
+                    const formattedSubordinates = response.data
+                        .filter(user => (user.user_id || user.id) !== userId)
+                        .map(user => ({
+                            user_id: user.user_id || user.id,
+                            name: user.full_name || user.name || user.username,
+                            role_name: user.role || user.role_name || 'team_member',
+                            has_subordinates: false, // Default assumption
+                            assigned_leads_count: user.assigned_leads_count || 0
+                        }));
+                    
+                    setSubordinates(formattedSubordinates);
+                    return;
+                }
+            } catch (fallbackError) {
+                console.error('All subordinate loading approaches failed:', fallbackError.message);
+            }
+            
+            // If we reach here, all approaches failed
+            setSubordinates([]);
+        } catch (error) {
+            console.error('Error loading subordinates:', error);
+            setSubordinates([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadAllSubordinateLeads = async (managerId) => {
+        if (!managerId) {
+            console.error('Cannot load subordinate leads: No manager ID provided');
+            setLeads([]);
+            setTotalLeads(0);
+            setLoading(false);
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            console.log('Loading leads for manager ID:', managerId);
+
+            try {
+                // First try: manager-subordinate-leads endpoint
+                const url = `${API_BASE_URL}/api/assigned-leads/manager-subordinate-leads/${managerId}`;
+                
+                const params = new URLSearchParams();
+                if (filters.status) params.append('status', filters.status);
+                if (filters.source) params.append('source', filters.source);
+                if (filters.dateRange) params.append('date_range', filters.dateRange);
+                
+                const fullUrl = params.toString() ? `${url}?${params.toString()}` : url;
+                
+                const response = await axios.get(fullUrl, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.data && (response.data.leads || response.data.data)) {
+                    const leadData = response.data.leads || response.data.data || [];
+                    setLeads(leadData);
+                    setTotalLeads(response.data.total || leadData.length || 0);
+                    return;
+                }
+            } catch (firstError) {
+                console.log('First approach failed, trying alternative approach:', firstError.message);
+            }
+            
+            // Alternative approach: Get the subordinates first, then fetch leads for each
+            const subIds = await fetchSubordinateIds(managerId);
+            console.log('Fetched subordinate IDs:', subIds);
+            
+            if (subIds.length > 0) {
+                // Combine the leads from all subordinates
+                let allLeads = [];
+                
+                // We'll use a regular API endpoint to get leads
+                let url = `${API_BASE_URL}/api/assigned-leads/leads`;
+                
+                const params = new URLSearchParams();
+                // Comma-separated list of user IDs
+                params.append('assigned_user_ids', subIds.join(','));
+                if (filters.status) params.append('status', filters.status);
+                if (filters.source) params.append('source', filters.source);
+                if (filters.dateRange) params.append('date_range', filters.dateRange);
+                params.append('limit', '100');
+                
+                const fullUrl = params.toString() ? `${url}?${params.toString()}` : url;
+                
+                try {
+                    const response = await axios.get(fullUrl, {
+                        headers: getAuthHeaders()
+                    });
+                    
+                    if (response.data && (response.data.data)) {
+                        allLeads = response.data.data;
+                        setLeads(allLeads);
+                        setTotalLeads(response.data.total || allLeads.length);
+                        return;
+                    }
+                } catch (secondError) {
+                    console.log('Second approach failed:', secondError.message);
+                    
+                    // If that fails, try fetching leads for each subordinate individually
+                    try {
+                        for (const subId of subIds) {
+                            const params = new URLSearchParams();
+                            params.append('assigned_user_id', subId);
+                            if (filters.status) params.append('status', filters.status);
+                            if (filters.source) params.append('source', filters.source);
+                            if (filters.dateRange) params.append('date_range', filters.dateRange);
+                            
+                            const response = await axios.get(`${API_BASE_URL}/api/assigned-leads/leads?${params.toString()}`, {
+                                headers: getAuthHeaders()
+                            });
+                            
+                            if (response.data && response.data.data) {
+                                allLeads = [...allLeads, ...response.data.data];
+                            }
+                        }
+                        
+                        setLeads(allLeads);
+                        setTotalLeads(allLeads.length);
+                        return;
+                    } catch (thirdError) {
+                        console.error('All approaches failed:', thirdError.message);
+                    }
+                }
+            }
+            
+            // If we reach here, all approaches have failed
+            setLeads([]);
+            setTotalLeads(0);
+        } catch (error) {
+            console.error('Error loading subordinate leads:', error);
+            setLeads([]);
+            setTotalLeads(0);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadLeads = async (userId = null) => {
+        if (!userId) {
+            // If no user ID, load all subordinate leads
+            if (currentUser) {
+                loadAllSubordinateLeads(currentUser.user_id);
+                return;
+            }
+            return;
+        }
+
+        try {
+            setLoading(true);
+            let url = `${API_BASE_URL}/api/assigned-leads/leads`;
+
+            const params = new URLSearchParams();
+            params.append('assigned_user_id', userId);
+            if (currentUser?.user_id) params.append('requester_user_id', currentUser.user_id);
+            if (filters.status) params.append('status', filters.status);
+            if (filters.source) params.append('source', filters.source);
+            if (filters.dateRange) params.append('date_range', filters.dateRange);
+            params.append('limit', '50'); // Show more leads
+
+            if (params.toString()) {
+                url += `?${params.toString()}`;
+            }
+
+            const response = await axios.get(url, {
+                headers: getAuthHeaders()
+            });
+
+            setLeads(response.data.data || []);
+            setTotalLeads(response.data.total || 0);
+        } catch (error) {
+            console.error('Error loading leads:', error);
+            setLeads([]);
+            setTotalLeads(0);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadUnassignedLeads = async () => {
+        try {
+            setLoading(true);
+            let url = `${API_BASE_URL}/api/assigned-leads/unassigned-leads`;
+
+            const params = new URLSearchParams();
+            if (filters.status) params.append('status', filters.status);
+            if (filters.source) params.append('source', filters.source);
+            if (filters.dateRange) params.append('date_range', filters.dateRange);
+            params.append('limit', '50'); // Show more leads
+
+            if (params.toString()) {
+                url += `?${params.toString()}`;
+            }
+
+            const response = await axios.get(url, {
+                headers: getAuthHeaders()
+            });
+
+            setUnassignedLeads(response.data.data || []);
+            setTotalUnassigned(response.data.total || 0);
+        } catch (error) {
+            console.error('Error loading unassigned leads:', error);
+            setUnassignedLeads([]);
+            setTotalUnassigned(0);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadStatistics = async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/assigned-leads/statistics`, {
+                headers: getAuthHeaders()
+            });
+            setStatistics(response.data.statistics || null);
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+        }
+    };
+
+    const handleUserSelect = (user) => {
+        setSelectedUser(user);
+        setShowUnassignedOnly(false); // Reset to show assigned leads when selecting a user
+        loadLeads(user.user_id);
+    };
+
+    const handleAutoAssign = async () => {
+        if (!currentUser?.user_id) {
+            alert("User ID not available. Please refresh the page.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            const response = await axios.post(
+                `${API_BASE_URL}/api/assigned-leads/auto-assign`,
+                {
+                    assigner_user_id: currentUser.user_id
+                },
+                { headers: getAuthHeaders() }
+            );
+
+            if (response.data.success) {
+                alert(`Successfully assigned ${response.data.assigned_count} leads to ${response.data.subordinates?.length || 0} subordinates!`);
+
+                // Refresh all data
+                loadSubordinates(currentUser.user_id);
+                loadStatistics();
+                loadUnassignedLeads();
+
+                if (selectedUser && !showUnassignedOnly) {
+                    loadLeads(selectedUser.user_id);
+                } else if (!showUnassignedOnly) {
+                    loadAllSubordinateLeads(currentUser.user_id);
+                }
+            }
+        } catch (error) {
+            console.error('Error auto-assigning leads:', error);
+            alert('Error during auto-assignment: ' + (error.response?.data?.detail || error.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleManualAssign = async (leadIds, assigneeId) => {
+        if (!currentUser?.user_id) {
+            alert("User ID not available. Please refresh the page.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            const response = await axios.post(
+                `${API_BASE_URL}/api/assigned-leads/manual-assign`,
+                {
+                    lead_ids: Array.isArray(leadIds) ? leadIds : [leadIds],
+                    assigned_to: assigneeId,
+                    assigner_user_id: currentUser.user_id
+                },
+                { headers: getAuthHeaders() }
+            );
+
+            if (response.data.success) {
+                alert(`Successfully assigned ${response.data.assigned_count} leads!`);
+
+                // Refresh all data
+                loadStatistics();
+                loadUnassignedLeads();
+
+                if (selectedUser && !showUnassignedOnly) {
+                    loadLeads(selectedUser.user_id);
+                } else if (!showUnassignedOnly) {
+                    loadAllSubordinateLeads(currentUser.user_id);
+                }
+            }
+        } catch (error) {
+            console.error('Error assigning lead:', error);
+            alert('Error assigning lead: ' + (error.response?.data?.detail || error.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const exportToExcel = () => {
+        const dataToExport = showUnassignedOnly ? unassignedLeads : leads;
+
+        if (dataToExport.length === 0) {
+            alert('No leads to export');
+            return;
+        }
+
+        const exportData = dataToExport.map(lead => ({
+            'Lead ID': lead._id,
+            'Name': lead.name || '',
+            'Email': lead.email || '',
+            'Phone': lead.phone || '',
+            'Status': lead.status || '',
+            'Source': lead.source || '',
+            'Assigned To': lead.assigned_user_info?.name || 'Unassigned',
+            'Created Date': lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '',
+            'Location': lead.location || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+
+        let filename;
+        if (showUnassignedOnly) {
+            filename = `unassigned_leads_${new Date().toISOString().split('T')[0]}.xlsx`;
+        } else if (selectedUser) {
+            filename = `leads_${selectedUser.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        } else {
+            filename = `all_subordinate_leads_${new Date().toISOString().split('T')[0]}.xlsx`;
+        }
+
+        XLSX.writeFile(wb, filename);
+    };
+
+    const renderSubordinateItem = (subordinate) => {
+        const hasSubordinates = subordinate.has_subordinates;
+
+        return (
+            <div key={subordinate.user_id} className="mb-3">
+                <div
+                    className={`
+                        p-4 border rounded-lg cursor-pointer transition-all duration-200
+                        ${selectedUser?.user_id === subordinate.user_id
+                            ? 'bg-blue-100 border-blue-500 shadow-md'
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }
+                    `}
+                    onClick={() => handleUserSelect(subordinate)}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                                {subordinate.role_name === 'admin' && <FaUserTie className="text-purple-600 text-xl" />}
+                                {subordinate.role_name === 'manager' && <BsPersonCheck className="text-blue-600 text-xl" />}
+                                {subordinate.role_name === 'sales_manager' && <BsPersonCheck className="text-indigo-600 text-xl" />}
+                                {(subordinate.role_name === 'executive' || subordinate.role_name === 'team_member') &&
+                                    <BsPersonFill className="text-green-600 text-xl" />}
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-800">
+                                    {subordinate.name}
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                    Role: {subordinate.role_name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    Assigned Leads: {subordinate.assigned_leads_count || 0}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-end">
+                            <span className="text-sm font-medium text-gray-700">
+                                {hasSubordinates ? 'Has subordinates' : 'No subordinates'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Function to log token information for debugging
+    const debugToken = () => {
+        // Check both token keys used in the application
+        const token = localStorage.getItem('token');
+        const accessToken = localStorage.getItem('access_token');
+        
+        console.log('Token check:');
+        console.log('- token exists:', !!token);
+        console.log('- access_token exists:', !!accessToken);
+        
+        const tokenToUse = token || accessToken;
+        
+        if (!tokenToUse) {
+            console.log('No token found in localStorage');
+            return;
+        }
+
+        try {
+            const parts = tokenToUse.split('.');
+            if (parts.length !== 3) {
+                console.log('Token does not appear to be a valid JWT (should have 3 parts)');
+                return;
+            }
+
+            const header = JSON.parse(atob(parts[0]));
+            const payload = JSON.parse(atob(parts[1]));
+            
+            console.log('Token header:', header);
+            console.log('Token payload:', payload);
+            
+            // Look for user information in common places
+            console.log('Possible user identifiers:');
+            console.log('- sub:', payload.sub);
+            console.log('- user_id:', payload.user_id);
+            console.log('- user:', payload.user);
+            
+            // Check for user in localStorage (this is how the app stores user data)
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                try {
+                    const userData = JSON.parse(userStr);
+                    console.log('user object in localStorage:', userData);
+                    console.log('user ID from localStorage:', userData.id);
+                } catch (e) {
+                    console.error('Error parsing user JSON:', e);
+                }
+            } else {
+                console.log('No user object in localStorage');
+            }
+            
+        } catch (error) {
+            console.error('Error parsing token for debug:', error);
+        }
+    };
+
+    return (
+        <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">My Team Lead Management</h1>
+                <p className="text-gray-600">
+                    Manage leads for your direct team members. Assign leads manually or automatically to your subordinates.
+                </p>
+            </div>
+            
+            {/* Authentication Error Message */}
+            {!currentUser?.user_id && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+                    <FaExclamationTriangle className="text-red-500 text-xl mr-3" />
+                    <div>
+                        <h3 className="font-medium text-red-800">Authentication Error</h3>
+                        <p className="text-sm text-red-700">
+                            Unable to identify your user account. Please try logging out and logging back in.
+                        </p>
+                        <button 
+                            onClick={debugToken}
+                            className="mt-2 text-xs bg-red-200 hover:bg-red-300 text-red-800 py-1 px-2 rounded"
+                        >
+                            Debug Token (Check Console)
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Subordinates Panel */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                                <FaUsers className="mr-2 text-blue-600" />
+                                My Team
+                            </h2>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => currentUser && loadSubordinates(currentUser.user_id)}
+                                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg"
+                                    disabled={loading}
+                                >
+                                    <FaSync className={`${loading ? 'animate-spin' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {currentUser && (
+                            <div className="mb-6">
+                                <div className="mb-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h3 className="font-semibold text-blue-700">Current Manager</h3>
+                                    <p className="text-blue-700">
+                                        {currentUser.name || currentUser.username}
+                                        <span className="ml-2 text-sm">(You)</span>
+                                    </p>
+                                    <div className="mt-3">
+                                        <button
+                                            onClick={handleAutoAssign}
+                                            className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center justify-center"
+                                            disabled={loading || subordinates.length === 0}
+                                        >
+                                            <FaSync className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                                            Auto-Assign Leads to Team
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mb-3">
+                                    <div
+                                        className="p-3 bg-gray-100 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-200"
+                                        onClick={() => {
+                                            setSelectedUser(null);
+                                            setShowUnassignedOnly(false);
+                                            loadAllSubordinateLeads(currentUser.user_id);
+                                        }}
+                                    >
+                                        <p className="font-medium text-gray-800">
+                                            View All Team Leads
+                                        </p>
+                                        <p className="text-xs text-gray-600">
+                                            Show leads assigned to all team members
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="space-y-1 max-h-96 overflow-y-auto">
+                            <h3 className="text-sm font-semibold text-gray-600 mb-2">Team Members</h3>
+                            {loading && subordinates.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p className="mt-2 text-gray-600">Loading team members...</p>
+                                </div>
+                            ) : subordinates.length > 0 ? (
+                                subordinates.map(subordinate => renderSubordinateItem(subordinate))
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500">No team members found</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Leads Panel */}
+                <div className="lg:col-span-2">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                                <FaFilter className="mr-2 text-green-600" />
+                                {selectedUser ?
+                                    `Leads assigned to ${selectedUser.name}` :
+                                    showUnassignedOnly ?
+                                        'Unassigned Leads' :
+                                        'All Team Leads'}
+                                <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+                                    {showUnassignedOnly ? totalUnassigned : totalLeads}
+                                </span>
+                            </h2>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => {
+                                        if (selectedUser) {
+                                            loadLeads(selectedUser.user_id);
+                                        } else if (currentUser && !showUnassignedOnly) {
+                                            loadAllSubordinateLeads(currentUser.user_id);
+                                        } else {
+                                            loadUnassignedLeads();
+                                        }
+                                    }}
+                                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg"
+                                    disabled={loading}
+                                >
+                                    <FaSync className={`${loading ? 'animate-spin' : ''}`} />
+                                </button>
+                                <button
+                                    onClick={() => setShowUnassignedOnly(!showUnassignedOnly)}
+                                    className={`${showUnassignedOnly ? 'bg-blue-600' : 'bg-gray-500'} hover:opacity-90 text-white px-3 py-2 rounded-lg flex items-center space-x-1 mr-2`}
+                                >
+                                    <span>{showUnassignedOnly ? 'Show Team Leads' : 'Show Unassigned'}</span>
+                                </button>
+                                <button
+                                    onClick={exportToExcel}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg flex items-center space-x-1"
+                                    disabled={(showUnassignedOnly ? unassignedLeads : leads).length === 0}
+                                >
+                                    <FaDownload />
+                                    <span>Export</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select
+                                    value={filters.status}
+                                    onChange={(e) => {
+                                        setFilters({ ...filters, status: e.target.value });
+                                        setTimeout(() => {
+                                            if (showUnassignedOnly) {
+                                                loadUnassignedLeads();
+                                            } else if (selectedUser) {
+                                                loadLeads(selectedUser.user_id);
+                                            } else if (currentUser) {
+                                                loadAllSubordinateLeads(currentUser.user_id);
+                                            }
+                                        }, 100);
+                                    }}
+                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">All Statuses</option>
+                                    <option value="new">New</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="qualified">Qualified</option>
+                                    <option value="converted">Converted</option>
+                                    <option value="closed">Closed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+                                <select
+                                    value={filters.source}
+                                    onChange={(e) => {
+                                        setFilters({ ...filters, source: e.target.value });
+                                        setTimeout(() => {
+                                            if (showUnassignedOnly) {
+                                                loadUnassignedLeads();
+                                            } else if (selectedUser) {
+                                                loadLeads(selectedUser.user_id);
+                                            } else if (currentUser) {
+                                                loadAllSubordinateLeads(currentUser.user_id);
+                                            }
+                                        }, 100);
+                                    }}
+                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">All Sources</option>
+                                    <option value="website">Website</option>
+                                    <option value="social_media">Social Media</option>
+                                    <option value="referral">Referral</option>
+                                    <option value="cold_call">Cold Call</option>
+                                    <option value="email">Email</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                                <select
+                                    value={filters.dateRange}
+                                    onChange={(e) => {
+                                        setFilters({ ...filters, dateRange: e.target.value });
+                                        setTimeout(() => {
+                                            if (showUnassignedOnly) {
+                                                loadUnassignedLeads();
+                                            } else if (selectedUser) {
+                                                loadLeads(selectedUser.user_id);
+                                            } else if (currentUser) {
+                                                loadAllSubordinateLeads(currentUser.user_id);
+                                            }
+                                        }, 100);
+                                    }}
+                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">All Time</option>
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month">This Month</option>
+                                    <option value="quarter">This Quarter</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Leads List */}
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {loading ? (
+                                <div className="text-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p className="mt-2 text-gray-600">Loading leads...</p>
+                                </div>
+                            ) : (showUnassignedOnly ? unassignedLeads : leads).length > 0 ? (
+                                (showUnassignedOnly ? unassignedLeads : leads).map(lead => (
+                                    <div key={lead._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-gray-800">{lead.name || 'No Name'}</h3>
+                                                <div className="text-sm text-gray-600 space-y-1">
+                                                    <p>📧 {lead.email || 'No email'}</p>
+                                                    <p>📱 {lead.phone || 'No phone'}</p>
+                                                    <p>📍 {lead.location || 'No location'}</p>
+                                                    <p className="flex items-center space-x-2">
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium
+                                                            ${lead.status === 'new' ? 'bg-blue-100 text-blue-800' :
+                                                                lead.status === 'contacted' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    lead.status === 'qualified' ? 'bg-purple-100 text-purple-800' :
+                                                                        lead.status === 'converted' ? 'bg-green-100 text-green-800' :
+                                                                            'bg-gray-100 text-gray-800'}`}>
+                                                            {lead.status || 'Unknown'}
+                                                        </span>
+                                                        <span className="text-gray-500">•</span>
+                                                        <span>{lead.source || 'Unknown source'}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end space-y-2">
+                                                <div className="text-right">
+                                                    <p className="text-sm font-medium text-gray-700">
+                                                        {lead.assigned_user_info?.name || 'Unassigned'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : 'No date'}
+                                                    </p>
+                                                </div>
+                                                {subordinates.length > 0 && (
+                                                    <select
+                                                        onChange={(e) => {
+                                                            if (e.target.value) {
+                                                                handleManualAssign(lead._id, e.target.value);
+                                                                e.target.value = '';
+                                                            }
+                                                        }}
+                                                        className="text-xs p-1 border border-gray-300 rounded"
+                                                        defaultValue=""
+                                                    >
+                                                        <option value="">{lead.assigned_to ? 'Reassign to...' : 'Assign to...'}</option>
+                                                        {subordinates.map(subordinate => (
+                                                            <option key={subordinate.user_id} value={subordinate.user_id}>
+                                                                {subordinate.name} ({subordinate.role_name})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500">
+                                        {showUnassignedOnly ? 'No unassigned leads found' :
+                                            selectedUser ? `No leads assigned to ${selectedUser.name}` :
+                                                'No leads found'}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default HierarchyAssignment;
