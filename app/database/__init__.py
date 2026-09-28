@@ -334,7 +334,7 @@ def initialize_db():
     """Initialize database connection and setup."""
     try:
         # Test connection
-        client.server_info()
+        _db().command('ping')
         logger.info(f"Connected to MongoDB: {MONGO_URI}")
         
         # Create indexes safely
@@ -454,8 +454,9 @@ def assign_admin_role(username):
 
 def close_db_connection():
     """Close database connection."""
-    if client:
-        client.close()
+    global _client
+    if _client:
+        _client.close()
         logger.info("MongoDB connection closed")
 
 async def insert_lead(lead_data):
