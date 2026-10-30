@@ -19,6 +19,16 @@ function getIsAdmin() {
   } catch { return false; }
 }
 
+function getIsSuperAdmin() {
+  try {
+    const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+    const roles = Array.isArray(userObj.roles)
+      ? userObj.roles.map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase())
+      : typeof userObj.roles === 'string' ? [userObj.roles.toLowerCase()] : [];
+    return roles.includes('superadmin') || roles.includes('super_admin');
+  } catch { return false; }
+}
+
 function getCurrentUserId() {
   try {
     const userObj = JSON.parse(localStorage.getItem('user') || '{}');
@@ -42,6 +52,32 @@ const initialNewUser = {
   is_active: true,
   roles: [],
 };
+
+const permissionId = item => item?.key || item?.id || "";
+const cleanPermissionList = value => Array.isArray(value) ? value.filter(Boolean) : [];
+
+function mergeAdminPermissions(users, admins) {
+  if (!Array.isArray(admins) || admins.length === 0) return users;
+  const byKey = new Map();
+  admins.forEach(admin => {
+    [admin.id, admin.user_id, admin.username, admin.email].filter(Boolean).forEach(key => {
+      byKey.set(String(key), admin);
+    });
+  });
+  return users.map(user => {
+    const match = [user.id, user.user_id, user.username, user.email]
+      .filter(Boolean)
+      .map(key => byKey.get(String(key)))
+      .find(Boolean);
+    return match
+      ? {
+        ...user,
+        admin_permissions: cleanPermissionList(match.admin_permissions),
+        is_hospital_admin: true,
+      }
+      : user;
+  });
+}
 
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.92, y: 70 },
@@ -71,6 +107,30 @@ const tableRowVariants = {
   exit: { opacity: 0, x: 20, transition: { duration: 0.16 } }
 };
 
+const iconToneClasses = {
+  blue: "text-blue-600 hover:bg-blue-100 border-blue-100",
+  indigo: "text-indigo-600 hover:bg-indigo-100 border-indigo-100",
+  amber: "text-amber-600 hover:bg-amber-100 border-amber-100",
+  red: "text-red-600 hover:bg-red-100 border-red-100",
+  green: "text-green-600 hover:bg-green-100 border-green-100",
+  slate: "text-slate-600 hover:bg-slate-100 border-slate-100",
+};
+
+function IconActionButton({ title, icon, tone = "blue", disabled = false, loading = false, onClick }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      disabled={disabled || loading}
+      onClick={onClick}
+      className={`h-9 w-9 inline-flex items-center justify-center rounded-md border bg-white text-sm shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed ${iconToneClasses[tone] || iconToneClasses.blue}`}
+    >
+      <i className={`fas ${loading ? "fa-spinner fa-spin" : `fa-${icon}`}`} />
+    </button>
+  );
+}
+
 const UserProfiles = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -99,8 +159,14 @@ const UserProfiles = () => {
   const [hospitals, setHospitals] = useState([]);
   const [assignHospitalCard, setAssignHospitalCard] = useState({ show: false, user: null, selectedHospitalId: "" });
   const [assignHospitalLoading, setAssignHospitalLoading] = useState(false);
+  const [availablePermissions, setAvailablePermissions] = useState([]);
+  const [adminPermissionUser, setAdminPermissionUser] = useState(null);
+  const [adminPermissionDraft, setAdminPermissionDraft] = useState([]);
+  const [adminPermissionSaving, setAdminPermissionSaving] = useState(false);
+  const [adminPermissionError, setAdminPermissionError] = useState("");
 
   const isAdmin = getIsAdmin();
+  const isSuperAdmin = getIsSuperAdmin();
   const currentUserId = getCurrentUserId();
   const currentUserRoleIds = getCurrentUserRoleIds();
 
@@ -110,6 +176,15 @@ const UserProfiles = () => {
     roles.forEach(r => { map[r.id] = r.name; });
     return map;
   }, [roles]);
+
+  const permissionsByGroup = useMemo(() => {
+    return availablePermissions.reduce((acc, item) => {
+      const group = item.group || "Other";
+      acc[group] = acc[group] || [];
+      acc[group].push(item);
+      return acc;
+    }, {});
+  }, [availablePermissions]);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token") || "";
@@ -130,7 +205,21 @@ const UserProfiles = () => {
         const [usersRes, rolesRes, hospitalsRes] = results;
 
         if (usersRes.ok) {
-          const data = await usersRes.json();
+          let data = await usersRes.json();
+          if (isSuperAdmin) {
+            const [permissionsRes, adminsRes] = await Promise.all([
+              fetch("https://cubehis.avopay.pro:5000/api/super-admin/permissions", { headers }),
+              fetch("https://cubehis.avopay.pro:5000/api/super-admin/admins", { headers }),
+            ]);
+            if (permissionsRes.ok) {
+              const permissionsData = await permissionsRes.json();
+              setAvailablePermissions(permissionsData.permissions || []);
+            }
+            if (adminsRes.ok) {
+              const adminsData = await adminsRes.json();
+              data = mergeAdminPermissions(data, adminsData.admins || []);
+            }
+          }
           setUsers(data);
         } else {
           setError("Could not load users.");
@@ -172,7 +261,16 @@ const UserProfiles = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` }
       });
       if (!res.ok) throw new Error("Failed to fetch users");
-      const data = await res.json();
+      let data = await res.json();
+      if (isSuperAdmin) {
+        const adminsRes = await fetch("https://cubehis.avopay.pro:5000/api/super-admin/admins", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` }
+        });
+        if (adminsRes.ok) {
+          const adminsData = await adminsRes.json();
+          data = mergeAdminPermissions(data, adminsData.admins || []);
+        }
+      }
       setUsers(data);
     } catch {
       setError("Could not load users.");
@@ -257,6 +355,98 @@ const UserProfiles = () => {
     }
     return "";
   }
+
+  function getRoleNames(user) {
+    const names = [];
+    if (Array.isArray(user.roles)) {
+      user.roles.forEach(role => {
+        if (typeof role === "string") names.push(rolesMap[role] || role);
+        else names.push(rolesMap[role.id] || role.name || role.id || "");
+      });
+    } else if (typeof user.roles === "string") {
+      names.push(rolesMap[user.roles] || user.roles);
+    }
+    if (Array.isArray(user.role_ids)) {
+      user.role_ids.forEach(roleId => names.push(rolesMap[roleId] || roleId));
+    }
+    return names.filter(Boolean).map(name => String(name).toLowerCase());
+  }
+
+  function canEditAdminPermissions(user) {
+    if (!isSuperAdmin) return false;
+    return user.is_hospital_admin || getRoleNames(user).some(role => role === "admin" || role === "administrator");
+  }
+
+  const openAdminPermissions = async (user) => {
+    setAdminPermissionUser(user);
+    setAdminPermissionDraft(cleanPermissionList(user.admin_permissions));
+    setAdminPermissionError("");
+    if (availablePermissions.length > 0) return;
+    try {
+      const res = await fetch("https://cubehis.avopay.pro:5000/api/super-admin/permissions", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` }
+      });
+      if (!res.ok) throw new Error("Could not load permissions");
+      const data = await res.json();
+      setAvailablePermissions(data.permissions || []);
+    } catch (err) {
+      setAdminPermissionError(err.message || "Could not load permissions");
+    }
+  };
+
+  const toggleAdminPermission = (key) => {
+    setAdminPermissionDraft(prev => prev.includes(key)
+      ? prev.filter(item => item !== key)
+      : [...prev, key]);
+  };
+
+  const setAdminPermissionGroup = (items, checked) => {
+    const keys = items.map(permissionId).filter(Boolean);
+    setAdminPermissionDraft(prev => {
+      const next = new Set(prev);
+      keys.forEach(key => checked ? next.add(key) : next.delete(key));
+      return Array.from(next);
+    });
+  };
+
+  const saveAdminPermissions = async () => {
+    if (!adminPermissionUser) return;
+    const userId = adminPermissionUser.id || adminPermissionUser.user_id || adminPermissionUser._id;
+    if (!userId) {
+      setAdminPermissionError("Missing admin id");
+      return;
+    }
+    setAdminPermissionSaving(true);
+    setAdminPermissionError("");
+    try {
+      const res = await fetch(`https://cubehis.avopay.pro:5000/api/super-admin/admins/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`
+        },
+        body: JSON.stringify({ admin_permissions: adminPermissionDraft })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Failed to update permissions");
+      const updated = data.admin || {};
+      setUsers(prev => prev.map(user => {
+        const sameUser = [user.id, user.user_id, user.username, user.email]
+          .filter(Boolean)
+          .some(key => [updated.id, updated.user_id, updated.username, updated.email].filter(Boolean).map(String).includes(String(key)));
+        return sameUser
+          ? { ...user, admin_permissions: cleanPermissionList(updated.admin_permissions), is_hospital_admin: true }
+          : user;
+      }));
+      showModal("Success", "Admin permissions updated successfully", "success");
+      setAdminPermissionUser(null);
+      setAdminPermissionDraft([]);
+    } catch (err) {
+      setAdminPermissionError(err.message || "Could not update permissions");
+    } finally {
+      setAdminPermissionSaving(false);
+    }
+  };
 
   const onNewUserChange = e => {
     const { name, value, type, checked } = e.target;
@@ -634,6 +824,113 @@ const UserProfiles = () => {
         )}
       </AnimatePresence>
 
+      {/* Admin sidebar permissions */}
+      <AnimatePresence>
+        {adminPermissionUser && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-3"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={modalVariants}
+            key="admin-permissions-modal"
+          >
+            <motion.div
+              className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]"
+              initial={{ scale: 0.88, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0, transition: { type: "spring", stiffness: 230, damping: 20 } }}
+              exit={{ scale: 0.95, opacity: 0, y: 20, transition: { duration: 0.18 } }}
+            >
+              <div className="flex items-start justify-between p-4 sm:p-5 border-b border-gray-100 shrink-0">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">Sidebar Permissions</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {adminPermissionUser.full_name || adminPermissionUser.username}
+                    {adminPermissionUser.hospital_name ? ` · ${adminPermissionUser.hospital_name}` : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setAdminPermissionUser(null);
+                    setAdminPermissionDraft([]);
+                    setAdminPermissionError("");
+                  }}
+                  className="h-8 w-8 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50"
+                  aria-label="Close"
+                >
+                  <i className="fas fa-times" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto p-4 sm:p-5 space-y-4">
+                {Object.keys(permissionsByGroup).length === 0 ? (
+                  <div className="py-10 text-center text-gray-400">
+                    <i className="fas fa-spinner fa-spin mr-2" />Loading permissions...
+                  </div>
+                ) : Object.entries(permissionsByGroup).map(([group, items]) => {
+                  const allSelected = items.every(item => adminPermissionDraft.includes(permissionId(item)));
+                  return (
+                    <section key={group} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <h4 className="font-semibold text-gray-800 text-sm">{group}</h4>
+                        <label className="inline-flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onChange={e => setAdminPermissionGroup(items, e.target.checked)}
+                          />
+                          Select group
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {items.map(item => {
+                          const key = permissionId(item);
+                          return (
+                            <label key={key} className="flex items-center gap-2 rounded-md border border-gray-100 px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={adminPermissionDraft.includes(key)}
+                                onChange={() => toggleAdminPermission(key)}
+                              />
+                              <span>{item.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+
+              <div className="p-4 border-t border-gray-100 shrink-0">
+                {adminPermissionError && <div className="text-red-600 text-sm mb-3">{adminPermissionError}</div>}
+                <div className="flex flex-col sm:flex-row justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminPermissionUser(null);
+                      setAdminPermissionDraft([]);
+                      setAdminPermissionError("");
+                    }}
+                    className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={adminPermissionSaving || availablePermissions.length === 0}
+                    onClick={saveAdminPermissions}
+                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold text-sm"
+                  >
+                    {adminPermissionSaving ? "Saving..." : "Save Permissions"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 140, damping: 18 }}>
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-2">
           <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 tracking-tight drop-shadow text-center w-full sm:w-auto">
@@ -660,7 +957,7 @@ const UserProfiles = () => {
                 <th className="p-2 sm:p-3 md:p-4 font-semibold text-blue-700">Role</th>
                 <th className="p-2 sm:p-3 md:p-4 font-semibold text-blue-700">Hospital</th>
                 <th className="p-2 sm:p-3 md:p-4 font-semibold text-blue-700">Status</th>
-                {isAdmin && <th className="p-2 sm:p-3 md:p-4 font-semibold text-blue-700">Action</th>}
+                {isAdmin && <th className="p-2 sm:p-3 md:p-4 font-semibold text-blue-700 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -697,35 +994,56 @@ const UserProfiles = () => {
                   </td>
                   {isAdmin && (
                     <td className="p-2 sm:p-3 md:p-4">
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex justify-end gap-2 flex-wrap min-w-[136px]">
                         {u.is_active ? (
                           <>
-                            <button
-                              className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-blue-600 transition"
+                            <IconActionButton
+                              title="Edit user"
+                              icon="edit"
+                              tone="blue"
                               disabled={actionLoading === u.id + "-update"}
                               onClick={() => handleEditUser(u)}
-                            >Edit</button>
-                            <button
-                              className="bg-indigo-500 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-indigo-600 transition"
+                            />
+                            <IconActionButton
+                              title="Assign hospital"
+                              icon="hospital"
+                              tone="indigo"
                               onClick={() => setAssignHospitalCard({ show: true, user: u, selectedHospitalId: u.hospital_id || "" })}
-                            >🏥</button>
-                            <button
-                              className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition"
+                            />
+                            {canEditAdminPermissions(u) && (
+                              <IconActionButton
+                                title="Edit sidebar permissions"
+                                icon="user-shield"
+                                tone="slate"
+                                onClick={() => openAdminPermissions(u)}
+                              />
+                            )}
+                            <IconActionButton
+                              title="Deactivate user"
+                              icon="user-slash"
+                              tone="amber"
                               disabled={actionLoading === u.id + "-deactivate"}
+                              loading={actionLoading === u.id + "-deactivate"}
                               onClick={() => handleDeactivateUser(u)}
-                            >{actionLoading === u.id + "-deactivate" ? "..." : "Deactivate"}</button>
-                            <button
-                              className="bg-red-600 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-red-700 transition"
+                            />
+                            <IconActionButton
+                              title="Delete user"
+                              icon="trash"
+                              tone="red"
                               disabled={actionLoading === u.id + "-delete"}
+                              loading={actionLoading === u.id + "-delete"}
                               onClick={() => handleDeleteUser(u)}
-                            >{actionLoading === u.id + "-delete" ? "..." : "Delete"}</button>
+                            />
                           </>
                         ) : (
-                          <button
-                            className="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-green-700 transition"
+                          <IconActionButton
+                            title="Activate user"
+                            icon="user-check"
+                            tone="green"
                             disabled={actionLoading === u.id + "-activate"}
+                            loading={actionLoading === u.id + "-activate"}
                             onClick={() => handleActivateUser(u)}
-                          >{actionLoading === u.id + "-activate" ? "..." : "Activate"}</button>
+                          />
                         )}
                       </div>
                     </td>

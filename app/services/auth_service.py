@@ -399,6 +399,8 @@ class AuthService:
             "phone": new_user.get("phone"),
             "department": new_user.get("department"),
             "roles": role_dicts,  # This should be a list of dictionaries
+            "hospital_id": new_user.get("hospital_id"),
+            "hospital_name": new_user.get("hospital_name"),
             "is_active": new_user.get("is_active", True),
             "created_at": new_user["created_at"],
             "updated_at": new_user.get("updated_at", new_user["created_at"]),  # Use created_at as fallback

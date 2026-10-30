@@ -15,6 +15,18 @@ const defaultForm = {
   contact_person: '', contact_designation: '', logo_url: '', is_active: true, notes: '',
 };
 
+function getIsSuperAdmin() {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const roles = Array.isArray(user.roles)
+      ? user.roles.map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase())
+      : typeof user.roles === 'string' ? [user.roles.toLowerCase()] : [];
+    return roles.includes('superadmin') || roles.includes('super_admin');
+  } catch {
+    return false;
+  }
+}
+
 export default function HospitalManagementPage() {
   const [hospitals, setHospitals] = useState([]);
   const [stats, setStats] = useState({});
@@ -26,6 +38,7 @@ export default function HospitalManagementPage() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [activeStep, setActiveStep] = useState(1);
+  const isSuperAdmin = getIsSuperAdmin();
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token') || ''}` };
 
@@ -116,11 +129,13 @@ export default function HospitalManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-blue-900">Hospital Management</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage all hospitals in the network</p>
+          <p className="text-gray-500 text-sm mt-1">{isSuperAdmin ? 'Manage all hospitals in the network' : 'Your assigned hospital'}</p>
         </div>
-        <button onClick={openAdd} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow hover:bg-blue-700 transition">
-          <i className="fas fa-hospital-alt" /> Add Hospital
-        </button>
+        {isSuperAdmin && (
+          <button onClick={openAdd} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow hover:bg-blue-700 transition">
+            <i className="fas fa-hospital-alt" /> Add Hospital
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -167,10 +182,12 @@ export default function HospitalManagementPage() {
         <div className="bg-white rounded-2xl shadow p-16 text-center text-gray-400">
           <i className="fas fa-hospital-alt text-5xl mb-4 block text-blue-100" />
           <p className="text-lg font-medium">No hospitals found</p>
-          <p className="text-sm mt-1">Click "Add Hospital" to register your first hospital</p>
-          <button onClick={openAdd} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
-            Add First Hospital
-          </button>
+          <p className="text-sm mt-1">{isSuperAdmin ? 'Click "Add Hospital" to register your first hospital' : 'No hospital is assigned to this account'}</p>
+          {isSuperAdmin && (
+            <button onClick={openAdd} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
+              Add First Hospital
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow overflow-hidden border border-gray-100">
@@ -185,7 +202,7 @@ export default function HospitalManagementPage() {
                   <th className="text-left px-5 py-3">Contact Person</th>
                   <th className="text-center px-5 py-3">Accreditation</th>
                   <th className="text-center px-5 py-3">Status</th>
-                  <th className="text-center px-5 py-3">Actions</th>
+                  {isSuperAdmin && <th className="text-center px-5 py-3">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -228,16 +245,18 @@ export default function HospitalManagementPage() {
                         {h.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => openEdit(h)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit">
-                          <i className="fas fa-edit" />
-                        </button>
-                        <button onClick={() => handleDelete(h.id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition" title="Delete">
-                          <i className="fas fa-trash" />
-                        </button>
-                      </div>
-                    </td>
+                    {isSuperAdmin && (
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => openEdit(h)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit">
+                            <i className="fas fa-edit" />
+                          </button>
+                          <button onClick={() => handleDelete(h.id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition" title="Delete">
+                            <i className="fas fa-trash" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

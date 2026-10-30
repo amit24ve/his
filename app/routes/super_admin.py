@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, status
+from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, EmailStr
 
 from app.database import get_database
@@ -110,6 +111,10 @@ def _clean_permissions(permissions: Optional[List[str]]) -> List[str]:
     return clean_module_permissions(permissions or [])
 
 
+def _clean_text(value: Any) -> str:
+    return str(value or "").strip()
+
+
 def _admin_query() -> Dict[str, Any]:
     return {
         "$or": [
@@ -167,17 +172,19 @@ async def create_hospital_admin(
     hospital = _find_hospital(db, data.hospital_id)
     if not hospital:
         raise HTTPException(status_code=404, detail="Hospital not found")
-    if db.users.find_one({"username": data.username}):
+    username = _clean_text(data.username)
+    email = _clean_text(data.email).lower()
+    if db.users.find_one({"username": username}):
         raise HTTPException(status_code=400, detail="Username already exists")
-    if db.users.find_one({"email": data.email}):
+    if db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already exists")
 
     auth_service = AuthService()
     now = datetime.now()
     admin_role_id = _admin_role_id(db)
     user_doc = {
-        "username": data.username,
-        "email": data.email,
+        "username": username,
+        "email": email,
         "password": auth_service.get_password_hash(data.password),
         "full_name": data.full_name,
         "phone": data.phone,
@@ -192,7 +199,10 @@ async def create_hospital_admin(
         "created_at": now,
         "updated_at": now,
     }
-    result = db.users.insert_one(user_doc)
+    try:
+        result = db.users.insert_one(user_doc)
+    except DuplicateKeyError:
+        raise HTTPException(status_code=400, detail="Username or email already exists")
     created = db.users.find_one({"_id": result.inserted_id})
     return {"admin": _admin_response(db, created)}
 
@@ -248,6 +258,15 @@ async def create_hospital_with_admin(
     db = get_database()
     hospital_data = dict(payload.hospital or {})
     admin_data = dict(payload.admin or {})
+    hospital_data["name"] = _clean_text(hospital_data.get("name"))
+    hospital_data["code"] = _clean_text(hospital_data.get("code")).upper()
+    hospital_data["address"] = _clean_text(hospital_data.get("address"))
+    hospital_data["city"] = _clean_text(hospital_data.get("city"))
+    if hospital_data.get("email"):
+        hospital_data["email"] = _clean_text(hospital_data.get("email")).lower()
+    admin_data["username"] = _clean_text(admin_data.get("username"))
+    admin_data["email"] = _clean_text(admin_data.get("email")).lower()
+    admin_data["full_name"] = _clean_text(admin_data.get("full_name"))
     if not hospital_data.get("name") or not hospital_data.get("code") or not hospital_data.get("address") or not hospital_data.get("city"):
         raise HTTPException(status_code=400, detail="Hospital name, code, address and city are required")
     if not admin_data.get("username") or not admin_data.get("email") or not admin_data.get("password") or not admin_data.get("full_name"):
@@ -262,7 +281,10 @@ async def create_hospital_with_admin(
     now = datetime.now()
     hospital_data["created_at"] = now
     hospital_data["updated_at"] = now
-    hospital_result = db.hospitals.insert_one(hospital_data)
+    try:
+        hospital_result = db.hospitals.insert_one(hospital_data)
+    except DuplicateKeyError:
+        raise HTTPException(status_code=400, detail="Hospital code already exists")
     hospital_id = str(hospital_result.inserted_id)
 
     admin_payload = AdminCreate(
@@ -276,7 +298,14 @@ async def create_hospital_with_admin(
         admin_permissions=admin_data.get("admin_permissions") or [],
         is_active=admin_data.get("is_active", True),
     )
-    admin_result = await create_hospital_admin(admin_payload, current_user)
+    try:
+        admin_result = await create_hospital_admin(admin_payload, current_user)
+    except HTTPException:
+        db.hospitals.delete_one({"_id": hospital_result.inserted_id})
+        raise
+    except Exception as exc:
+        db.hospitals.delete_one({"_id": hospital_result.inserted_id})
+        raise HTTPException(status_code=500, detail=f"Could not create hospital admin: {str(exc)}")
     hospital = db.hospitals.find_one({"_id": hospital_result.inserted_id})
     return {"hospital": _serialize(hospital), "admin": admin_result["admin"]}
 

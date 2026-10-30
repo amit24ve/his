@@ -118,6 +118,7 @@ class UserRepository:
             "department": user.get("department"),
             "roles": roles,
             "role_ids": user.get("role_ids", []),
+            "admin_permissions": user.get("admin_permissions", []),
             "is_active": user.get("is_active", True),
             "reporting_user_id": user.get("reporting_user_id"),
             "hospital_id": user.get("hospital_id"),

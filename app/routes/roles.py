@@ -16,18 +16,63 @@ def is_admin(user_data):
     print(f"User roles from token: {roles}")
     return "admin" in roles
 
+
+def _role_names(current_user: Dict[str, Any]) -> set:
+    roles = current_user.get("roles", [])
+    token_roles = current_user.get("token_data", {}).get("roles", [])
+    if isinstance(roles, str):
+        roles = [roles]
+    if not isinstance(roles, list):
+        roles = []
+    if not isinstance(token_roles, list):
+        token_roles = [token_roles] if token_roles else []
+    names = []
+    for role in roles + token_roles:
+        if isinstance(role, dict):
+            names.append(role.get("name") or role.get("id") or "")
+        else:
+            names.append(role)
+    return {str(role).lower() for role in names if role}
+
+
+def _is_superadmin(current_user: Dict[str, Any]) -> bool:
+    roles = _role_names(current_user)
+    return "superadmin" in roles or "super_admin" in roles
+
+
+def _user_hospital_id(current_user: Dict[str, Any]) -> Optional[str]:
+    return current_user.get("hospital_id") or current_user.get("token_data", {}).get("hospital_id")
+
+
+def _scoped_roles(roles: List[Dict[str, Any]], current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if _is_superadmin(current_user):
+        return roles
+    hospital_id = _user_hospital_id(current_user)
+    if not hospital_id:
+        return []
+    return [role for role in roles if str(role.get("hospital_id") or "") == str(hospital_id)]
+
+
+def _ensure_role_in_scope(role: Dict[str, Any], current_user: Dict[str, Any]) -> None:
+    if _is_superadmin(current_user):
+        return
+    hospital_id = _user_hospital_id(current_user)
+    if not hospital_id or str(role.get("hospital_id") or "") != str(hospital_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role is outside your hospital scope")
+
 @roles_router.get("/", response_model=List[RoleResponse])
 async def get_all_roles(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    authorization: Optional[str] = Header(None)
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """List all roles"""
     try:
         timestamp = datetime.now().isoformat()
         print(f"[{timestamp}] Request received to list roles")
         role_repo = RoleRepository()
-        roles = role_repo.list_roles(skip=skip, limit=limit)
+        all_roles = role_repo.list_roles(skip=0, limit=1000)
+        roles = _scoped_roles(all_roles, current_user)[skip:skip + limit]
         print(f"[{datetime.now().isoformat()}] Successfully retrieved {len(roles)} roles")
         return roles
     except Exception as e: 
@@ -41,7 +86,7 @@ async def get_all_roles(
 @roles_router.get("/{role_id}", response_model=RoleResponse)
 async def get_role(
     role_id: str,
-    authorization: Optional[str] = Header(None)
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """Get a role by ID"""
     try:
@@ -54,7 +99,10 @@ async def get_role(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Role with ID {role_id} not found"
             )
+        _ensure_role_in_scope(role, current_user)
         return role
+    except HTTPException:
+        raise
     except Exception as e:
         error_message = f"Error fetching role: {str(e)}"
         print(f"[{datetime.now().isoformat()}] {error_message}")
@@ -86,9 +134,17 @@ async def create_role(
     try:
         print(f"[INFO] Creating role: {role_data.name}")
         role_repo = RoleRepository()
+        hospital_id = None if _is_superadmin(current_user) else _user_hospital_id(current_user)
+        if not _is_superadmin(current_user) and not hospital_id:
+            raise HTTPException(status_code=400, detail="Hospital admin must have an assigned hospital")
 
         # Duplicate name check
-        existing_role = role_repo.get_role_by_name(role_data.name)
+        duplicate_query = {"name": role_data.name}
+        if _is_superadmin(current_user):
+            duplicate_query["hospital_id"] = {"$in": [None, ""]}
+        else:
+            duplicate_query["hospital_id"] = hospital_id
+        existing_role = role_repo.collection.find_one(duplicate_query)
         if existing_role:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -105,6 +161,9 @@ async def create_role(
         role_dict["created_at"] = datetime.now()
         role_dict["updated_at"] = datetime.now()
         role_dict["created_by"] = current_user.get("id", "unknown")
+        if hospital_id:
+            role_dict["hospital_id"] = hospital_id
+            role_dict["created_by_admin"] = current_user.get("id") or current_user.get("user_id")
 
         # Ensure report_to is included if provided (for hierarchy)
         if hasattr(role_data, "report_to") and role_data.report_to:
@@ -150,12 +209,18 @@ async def update_role(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Role with ID {role_id} not found"
             )
+        _ensure_role_in_scope(existing_role, current_user)
 
         update_data = role_update.dict(exclude_unset=True)
         if "name" in update_data:
             new_name = update_data["name"]
-            role_with_same_name = role_repo.get_role_by_name(new_name)
-            if role_with_same_name and getattr(role_with_same_name, "id", None) != role_id:
+            duplicate_query = {"name": new_name}
+            if _is_superadmin(current_user):
+                duplicate_query["hospital_id"] = existing_role.get("hospital_id", {"$in": [None, ""]})
+            else:
+                duplicate_query["hospital_id"] = _user_hospital_id(current_user)
+            role_with_same_name = role_repo.collection.find_one(duplicate_query)
+            if role_with_same_name and role_with_same_name.get("id") != role_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Role with name '{new_name}' already exists."
@@ -202,8 +267,8 @@ async def delete_role(
     current_user: dict = Depends(get_current_user)
 ):
     """Delete a role"""
-    bypass_admin_check = True
-    if not bypass_admin_check and not is_admin(current_user):
+    bypass_admin_check = False
+    if not bypass_admin_check and "admin" not in _role_names(current_user) and not _is_superadmin(current_user):
         print(f"User does not have admin role. Available roles: {current_user.get('token_data', {}).get('roles', [])}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -221,6 +286,7 @@ async def delete_role(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Role with ID {role_id} not found"
             )
+        _ensure_role_in_scope(existing_role, current_user)
         if existing_role.get("name") in ["admin", "user"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

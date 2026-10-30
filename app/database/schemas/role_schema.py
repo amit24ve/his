@@ -41,6 +41,7 @@ class RoleResponse(RoleBase):
     """Response model for returning role data"""
     id: str = Field(..., example="Ro-001")  # Updated example
     permissions: List[str] = Field(default_factory=list, example=["users:read", "users:write"])
+    hospital_id: Optional[str] = Field(None, example="6836f325c046334b0d57133d")
     created_at: datetime = Field(..., example="2025-05-29T09:35:57")
     updated_at: Optional[datetime] = Field(None, example="2025-05-29T09:35:57")
 
@@ -86,6 +87,7 @@ def role_entity(role) -> Dict[str, Any]:
         "description": role.get("description"),
         "report_to": role.get("report_to"),
         "permissions": role.get("permissions", []),
+        "hospital_id": role.get("hospital_id"),
         "created_at": role.get("created_at", datetime.now()),
         "updated_at": role.get("updated_at")
     }

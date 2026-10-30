@@ -238,6 +238,9 @@ class RoleRepository:
                         "name": created_role["name"],
                         "description": created_role.get("description"),
                         "permissions": created_role.get("permissions", []),
+                        "report_to": created_role.get("report_to"),
+                        "hospital_id": created_role.get("hospital_id"),
+                        "created_by_admin": created_role.get("created_by_admin"),
                         "created_at": created_role.get("created_at", datetime.now()),
                         "updated_at": created_role.get("updated_at"),
                         "created_by": created_role.get("created_by")

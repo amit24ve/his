@@ -202,10 +202,14 @@ async def register_user(request: Request):
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] JSON registration attempt for: {json_data.get('username')}")
             
             user_data = UserCreate(**json_data)
+
+        current_admin = _resolve_user_from_authorization(request.headers.get("authorization"))
         
         auth_service = AuthService()
-        role_ids = getattr(user_data, 'role_ids', [])
+        role_ids = _hospital_scoped_role_ids(getattr(user_data, 'role_ids', []), current_admin)
         hospital_id = getattr(user_data, 'hospital_id', None)
+        if current_admin and not _is_superadmin_user(current_admin):
+            hospital_id = current_admin.get("hospital_id") or current_admin.get("token_data", {}).get("hospital_id")
         result = auth_service.register_user(
             username=user_data.username,
             email=user_data.email,
@@ -217,6 +221,21 @@ async def register_user(request: Request):
             reporting_user_id=None,  # Default to None since it's not in the model
             hospital_id=hospital_id,
         )
+        if hospital_id:
+            try:
+                from app.database import get_database
+                db = get_database()
+                hospital = db.hospitals.find_one({"_id": ObjectId(hospital_id)}) if ObjectId.is_valid(str(hospital_id)) else db.hospitals.find_one({"code": hospital_id})
+                hospital_name = hospital.get("name", "") if hospital else ""
+                if hospital_name:
+                    db.users.update_one(
+                        {"$or": [{"id": result.get("id")}, {"user_id": result.get("id")}, {"username": result.get("username")}]},
+                        {"$set": {"hospital_name": hospital_name}}
+                    )
+                    result["hospital_id"] = hospital_id
+                    result["hospital_name"] = hospital_name
+            except Exception as exc:
+                print(f"[WARNING] Could not attach hospital name after registration: {exc}")
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Registration successful: {user_data.username}")
         return result
     except HTTPException:
@@ -714,6 +733,65 @@ def map_roles(roles):
             result.append({"id": r, "name": r})
     return result
 
+
+def _role_names_from_user(user: Dict[str, Any]) -> set:
+    roles = user.get("roles", [])
+    token_roles = user.get("token_data", {}).get("roles", [])
+    if isinstance(roles, str):
+        roles = [roles]
+    if not isinstance(roles, list):
+        roles = []
+    if not isinstance(token_roles, list):
+        token_roles = [token_roles] if token_roles else []
+    names = []
+    for role in roles + token_roles:
+        if isinstance(role, dict):
+            names.append(role.get("name") or role.get("id") or "")
+        else:
+            names.append(role)
+    return {str(role).lower() for role in names if role}
+
+
+def _is_superadmin_user(user: Dict[str, Any]) -> bool:
+    roles = _role_names_from_user(user)
+    return "superadmin" in roles or "super_admin" in roles
+
+
+def _resolve_user_from_authorization(authorization: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        payload = jwt.decode(authorization.replace("Bearer ", ""), options={"verify_signature": False})
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        from app.database.repositories.user_repository import UserRepository
+        user = UserRepository().get_user_by_id(user_id)
+        if not user:
+            return None
+        user["token_data"] = payload
+        return user
+    except Exception as exc:
+        print(f"[WARNING] Could not resolve user from token: {exc}")
+        return None
+
+
+def _hospital_scoped_role_ids(role_ids: List[str], current_user: Optional[Dict[str, Any]]) -> List[str]:
+    if not current_user or _is_superadmin_user(current_user):
+        return role_ids
+    hospital_id = current_user.get("hospital_id") or current_user.get("token_data", {}).get("hospital_id")
+    if not hospital_id:
+        raise HTTPException(status_code=400, detail="Current admin has no assigned hospital")
+    from app.database import get_database
+    db = get_database()
+    scoped_ids = []
+    for role_id in role_ids or []:
+        role = db.roles.find_one({"id": role_id})
+        if not role or str(role.get("hospital_id") or "") != str(hospital_id):
+            raise HTTPException(status_code=403, detail=f"Role '{role_id}' is outside your hospital scope")
+        scoped_ids.append(role_id)
+    return scoped_ids
+
 @auth_router.get("/users", response_model=List[UserResponse])
 async def list_users(
     skip: int = 0, 
@@ -731,6 +809,13 @@ async def list_users(
             from app.database.repositories.user_repository import UserRepository
             user_repo = UserRepository()
             users = user_repo.list_users(skip, limit)
+            current_admin = _resolve_user_from_authorization(authorization)
+            if current_admin and not _is_superadmin_user(current_admin):
+                admin_hospital_id = current_admin.get("hospital_id") or current_admin.get("token_data", {}).get("hospital_id")
+                users = [
+                    u for u in users
+                    if admin_hospital_id and str(u.get("hospital_id") or "") == str(admin_hospital_id)
+                ]
             # Exclude system-created users from the management UI
             users = [u for u in users if not u.get('is_system', False)]
             print(f"Successfully retrieved {len(users)} users from database")

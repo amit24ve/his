@@ -221,8 +221,10 @@ async def admin_required(current_user: Dict[str, Any] = Depends(get_current_user
     # Now both roles and token_roles are lists, so we can safely concatenate them
     all_roles = set(roles + token_roles)
     
-    # Check for admin role
-    if "admin" not in all_roles:
+    normalized_roles = {str(role).lower() for role in all_roles}
+
+    # Check for admin role. Superadmin can use admin-level management endpoints too.
+    if "admin" not in normalized_roles and "superadmin" not in normalized_roles and "super_admin" not in normalized_roles:
         print(f"[ERROR] User {current_user.get('username')} doesn't have admin role. Available roles: {all_roles}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

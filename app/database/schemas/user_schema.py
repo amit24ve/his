@@ -43,6 +43,8 @@ class UserResponse(BaseModel):
     phone: Optional[str] = Field(None, example="8686863210")
     department: Optional[str] = Field(None, example="Engineering")
     roles: List[Dict[str, str]] = Field(default_factory=list, example=[{"id": "Ro-001", "name": "admin"}])
+    admin_permissions: List[str] = Field(default_factory=list, example=["dashboard", "patients"])
+    hospital_name: Optional[str] = Field(None, example="CubeMed Hospital")
     is_active: bool = Field(True, example=True)
     created_at: datetime = Field(..., example="2025-05-29T09:35:57")
     updated_at: Optional[datetime] = Field(None, example="2025-05-29T09:35:57")
@@ -104,6 +106,8 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: str = Field(..., example="6836f325c046334b0d57133d")
     roles: List[Dict[str, str]] = Field(default_factory=list, example=[{"id": "Ro-001", "name": "admin"}])
+    admin_permissions: List[str] = Field(default_factory=list, example=["dashboard", "patients"])
+    hospital_name: Optional[str] = Field(None, example="CubeMed Hospital")
     is_active: bool = Field(True, example=True)
     created_at: datetime = Field(..., example="2025-05-29T09:35:57")
     updated_at: Optional[datetime] = Field(None, example="2025-05-29T09:35:57")

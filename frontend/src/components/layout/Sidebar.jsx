@@ -78,13 +78,27 @@ const MEGA_MENU_COLS = [
 
 // All known permission keys used across the sidebar
 const ALL_PERMISSION_KEYS = [
-  'dashboard', 'appointments', 'patients', 'opd', 'ipd',
+  'dashboard', 'appointments', 'patients', 'reception', 'patient_registration', 'patient_portal', 'opd', 'ipd',
   'emr', 'nursing', 'ot', 'teleconsult',
   'pharmacy', 'laboratory', 'radiology', 'blood_bank',
-  'billing', 'insurance', 'certificates', 'doctors', 'departments',
-  'hr', 'inventory', 'accounts', 'reports',
-  'users', 'roles', 'admin', 'super_admin'
+  'billing', 'insurance', 'certificates', 'doctors', 'doctor_roster', 'departments',
+  'hr', 'staff_management', 'attendance', 'leave_requests', 'inventory', 'accounts', 'reports', 'analytics',
+  'users', 'roles', 'hospitals', 'admin', 'super_admin'
 ];
+
+const PARENT_PERMISSION_CHILDREN = {
+  patients: ['reception', 'patient_registration', 'patient_portal', 'opd', 'ipd'],
+  doctors: ['doctor_roster', 'departments'],
+  hr: ['staff_management', 'attendance', 'leave_requests'],
+  users: ['users', 'roles', 'hospitals'],
+  billing: ['billing', 'insurance'],
+  reports: ['reports', 'analytics'],
+};
+
+function addPermissionWithChildren(perms, key) {
+  perms.add(key);
+  (PARENT_PERMISSION_CHILDREN[key] || []).forEach(child => perms.add(child));
+}
 
 function isSuperAdminRole(currentRoleNames) {
   return Array.isArray(currentRoleNames) && currentRoleNames.some(r => {
@@ -114,7 +128,7 @@ function getUserPermissions(allRolesFromBackend, currentRoleNames, adminPermissi
 
   const directPermissions = Array.isArray(adminPermissions) ? adminPermissions : getStoredAdminPermissions();
   if (Array.isArray(directPermissions)) {
-    directPermissions.forEach(p => perms.add(p));
+    directPermissions.forEach(p => addPermissionWithChildren(perms, p));
     return perms;
   }
 
@@ -131,15 +145,24 @@ function getUserPermissions(allRolesFromBackend, currentRoleNames, adminPermissi
           if (p.includes(':')) {
             // New CRUD format: "leads:read" → grant "leads" access
             const module = p.split(':')[0];
-            perms.add(module);
+            addPermissionWithChildren(perms, module);
           } else {
-            perms.add(p);
+            addPermissionWithChildren(perms, p);
           }
         }
       }
     }
   }
   return perms;
+}
+
+function hasMenuItemAccess(item, permissions, roles) {
+  if (!item.submenu) return permissions.has(item.permission);
+  return item.submenu.some(sub => {
+    if (!permissions.has(sub.permission)) return false;
+    if (sub.requiresAdminOrHR) return isAdminOrHR(roles);
+    return true;
+  });
 }
 
 // Helper function to check if user is admin or HR
@@ -168,9 +191,9 @@ const menuItems = [
     path: '/patients',
     permission: 'patients',
     submenu: [
-      { label: 'Reception', path: '/reception', permission: 'patients' },
-      { label: 'Registration', path: '/patients/registration', permission: 'patients' },
-      { label: 'Patient Portal', path: '/patients/portal', permission: 'patients' },
+      { label: 'Reception', path: '/reception', permission: 'reception' },
+      { label: 'Registration', path: '/patients/registration', permission: 'patient_registration' },
+      { label: 'Patient Portal', path: '/patients/portal', permission: 'patient_portal' },
       { label: 'OPD Management', path: '/opd', permission: 'opd' },
       { label: 'IPD / Ward', path: '/ipd', permission: 'ipd' },
     ]
@@ -181,7 +204,7 @@ const menuItems = [
     path: '/doctors',
     permission: 'doctors',
     submenu: [
-      { label: 'Doctor Roster', path: '/doctors', permission: 'doctors' },
+      { label: 'Doctor Roster', path: '/doctors', permission: 'doctor_roster' },
       { label: 'Departments', path: '/departments', permission: 'departments' },
     ]
   },
@@ -223,9 +246,9 @@ const menuItems = [
     path: '/hr',
     permission: 'hr',
     submenu: [
-      { label: 'Staff Management', path: '/hr', permission: 'hr', requiresAdminOrHR: true },
-      { label: 'My Attendance', path: '/attendance', permission: 'hr' },
-      { label: 'My Leave Requests', path: '/my-leave-requests', permission: 'hr' },
+      { label: 'Staff Management', path: '/hr', permission: 'staff_management', requiresAdminOrHR: true },
+      { label: 'My Attendance', path: '/attendance', permission: 'attendance' },
+      { label: 'My Leave Requests', path: '/my-leave-requests', permission: 'leave_requests' },
     ]
   },
   { icon: 'boxes', label: 'Stock Management', path: '/inventory', permission: 'inventory' },
@@ -238,7 +261,7 @@ const menuItems = [
     submenu: [
       { label: 'Users', path: '/users/list', permission: 'users' },
       { label: 'Roles', path: '/users/roles', permission: 'roles' },
-      { label: 'Hospitals', path: '/users/hospitals', permission: 'users' },
+      { label: 'Hospitals', path: '/users/hospitals', permission: 'hospitals' },
     ]
   },
 ];
@@ -402,9 +425,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isMobile }) => {
   };
 
 
-  const filteredMenuItems = menuItems.filter(item =>
-    userPermissions.has(item.permission)
-  );
+  const filteredMenuItems = menuItems.filter(item => hasMenuItemAccess(item, userPermissions, currentRoles));
 
   return (
     <>

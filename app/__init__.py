@@ -129,12 +129,11 @@ origins = [
     "https://cubehis.avopay.pro",
     "http://cubehis.avopay.pro",
     "https://cubehis.avopay.pro:5173",
-    "*"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

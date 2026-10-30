@@ -10,12 +10,18 @@ const PERMISSION_SECTIONS = [
   { key: "dashboard", label: "Dashboard", actions: ["read"] },
   // Hospital Clinical
   { key: "appointments", label: "Appointments", actions: ["create", "read", "update", "delete"] },
-  { key: "patients", label: "Patient Registration", actions: ["create", "read", "update", "delete"] },
+  { key: "patients", label: "Patient Management", actions: ["read"] },
+  { key: "reception", label: "Reception", actions: ["create", "read", "update", "delete"] },
+  { key: "patient_registration", label: "Patient Registration", actions: ["create", "read", "update", "delete"] },
+  { key: "patient_portal", label: "Patient Portal", actions: ["read", "update"] },
   { key: "opd", label: "OPD Management", actions: ["create", "read", "update", "delete"] },
   { key: "ipd", label: "IPD / Ward", actions: ["create", "read", "update", "delete"] },
   { key: "emr", label: "EMR / Prescriptions", actions: ["create", "read", "update", "delete"] },
   { key: "nursing", label: "Nursing Station", actions: ["create", "read", "update", "delete"] },
   { key: "ot", label: "OT Management", actions: ["create", "read", "update", "delete"] },
+  { key: "doctors", label: "Doctors", actions: ["read"] },
+  { key: "doctor_roster", label: "Doctor Roster", actions: ["create", "read", "update", "delete"] },
+  { key: "departments", label: "Departments", actions: ["create", "read", "update", "delete"] },
   // Diagnostics & Pharmacy
   { key: "laboratory", label: "Laboratory", actions: ["create", "read", "update", "delete"] },
   { key: "radiology", label: "Radiology", actions: ["create", "read", "update", "delete"] },
@@ -27,9 +33,13 @@ const PERMISSION_SECTIONS = [
   { key: "leads", label: "Leads & CRM", actions: ["create", "read", "update", "delete"] },
   { key: "customers", label: "Customers", actions: ["create", "read", "update", "delete"] },
   // HR & Admin
-  { key: "hr", label: "HR & Staff", actions: ["create", "read", "update", "delete"] },
+  { key: "hr", label: "HR & Staff", actions: ["read"] },
+  { key: "staff_management", label: "Staff Management", actions: ["create", "read", "update", "delete"] },
+  { key: "attendance", label: "My Attendance", actions: ["create", "read", "update", "delete"] },
+  { key: "leave_requests", label: "Leave Requests", actions: ["create", "read", "update", "delete"] },
   { key: "users", label: "Users", actions: ["create", "read", "update", "delete"] },
   { key: "roles", label: "Roles", actions: ["create", "read", "update", "delete"] },
+  { key: "hospitals", label: "Hospitals", actions: ["read"] },
   // Other Modules
   { key: "inventory", label: "Inventory / Stock", actions: ["create", "read", "update", "delete"] },
   { key: "tasks", label: "Tasks & Workflow", actions: ["create", "read", "update", "delete"] },
@@ -39,6 +49,7 @@ const PERMISSION_SECTIONS = [
   { key: "loyalty", label: "Loyalty Platform", actions: ["create", "read", "update", "delete"] },
   { key: "franchise", label: "Franchise", actions: ["create", "read", "update", "delete"] },
   { key: "reports", label: "MIS Reports", actions: ["read"] },
+  { key: "analytics", label: "Analytics", actions: ["read"] },
   { key: "admin", label: "Admin", actions: ["read"] },
 ];
 

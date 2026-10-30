@@ -26,9 +26,14 @@ const defaultAdmin = {
   phone: '',
   department: 'Administration',
   hospital_id: '',
-  admin_permissions: ['dashboard', 'appointments', 'patients', 'opd', 'billing', 'reports'],
+  admin_permissions: ['dashboard', 'appointments', 'reception', 'patient_registration', 'patient_portal', 'opd', 'billing', 'reports'],
   is_active: true,
 };
+
+const permissionId = item => item?.key || item?.id || '';
+const cleanPermissionList = value => Array.isArray(value) ? value.filter(Boolean) : [];
+const freshHospital = () => ({ ...defaultHospital });
+const freshAdmin = () => ({ ...defaultAdmin, admin_permissions: [...defaultAdmin.admin_permissions] });
 
 function getHeaders() {
   return {
@@ -52,7 +57,18 @@ function getIsSuperAdmin() {
 function normalizeError(err, fallback) {
   if (typeof err?.detail === 'string') return err.detail;
   if (Array.isArray(err?.detail)) return err.detail.map(item => item.msg).join(', ');
+  if (typeof err?.message === 'string') return err.message;
   return fallback;
+}
+
+async function readResponse(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { detail: text };
+  }
 }
 
 export default function SuperAdminPage() {
@@ -61,11 +77,11 @@ export default function SuperAdminPage() {
   const [permissions, setPermissions] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [admins, setAdmins] = useState([]);
-  const [hospitalForm, setHospitalForm] = useState(defaultHospital);
-  const [adminForm, setAdminForm] = useState(defaultAdmin);
-  const [existingAdminForm, setExistingAdminForm] = useState(defaultAdmin);
+  const [hospitalForm, setHospitalForm] = useState(freshHospital);
+  const [adminForm, setAdminForm] = useState(freshAdmin);
+  const [existingAdminForm, setExistingAdminForm] = useState(freshAdmin);
   const [editingAdmin, setEditingAdmin] = useState(null);
-  const [editForm, setEditForm] = useState(defaultAdmin);
+  const [editForm, setEditForm] = useState(freshAdmin);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -116,15 +132,16 @@ export default function SuperAdminPage() {
   const setEditField = (key, value) => setEditForm(prev => ({ ...prev, [key]: value }));
 
   const togglePermission = (formSetter, current, key) => {
-    const next = current.includes(key)
-      ? current.filter(item => item !== key)
-      : [...current, key];
+    const selected = cleanPermissionList(current);
+    const next = selected.includes(key)
+      ? selected.filter(item => item !== key)
+      : [...selected, key];
     formSetter('admin_permissions', next);
   };
 
   const selectPermissionGroup = (formSetter, current, groupItems, checked) => {
-    const keys = groupItems.map(item => item.key);
-    const set = new Set(current);
+    const keys = groupItems.map(permissionId).filter(Boolean);
+    const set = new Set(cleanPermissionList(current));
     keys.forEach(key => checked ? set.add(key) : set.delete(key));
     formSetter('admin_permissions', Array.from(set));
   };
@@ -145,10 +162,10 @@ export default function SuperAdminPage() {
         headers: getHeaders(),
         body: JSON.stringify({ hospital: buildHospitalPayload(), admin: adminForm }),
       });
-      const data = await res.json();
+      const data = await readResponse(res);
       if (!res.ok) throw data;
-      setHospitalForm(defaultHospital);
-      setAdminForm(defaultAdmin);
+      setHospitalForm(freshHospital());
+      setAdminForm(freshAdmin());
       setMessage({ type: 'success', text: 'Hospital and admin created successfully' });
       await load();
     } catch (err) {
@@ -168,9 +185,9 @@ export default function SuperAdminPage() {
         headers: getHeaders(),
         body: JSON.stringify(existingAdminForm),
       });
-      const data = await res.json();
+      const data = await readResponse(res);
       if (!res.ok) throw data;
-      setExistingAdminForm(defaultAdmin);
+      setExistingAdminForm(freshAdmin());
       setMessage({ type: 'success', text: 'Admin created successfully' });
       await load();
     } catch (err) {
@@ -190,7 +207,7 @@ export default function SuperAdminPage() {
       phone: admin.phone || '',
       department: admin.department || 'Administration',
       hospital_id: admin.hospital_id || '',
-      admin_permissions: Array.isArray(admin.admin_permissions) ? admin.admin_permissions : [],
+      admin_permissions: cleanPermissionList(admin.admin_permissions),
       is_active: admin.is_active !== false,
     });
   };
@@ -208,7 +225,7 @@ export default function SuperAdminPage() {
         headers: getHeaders(),
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await readResponse(res);
       if (!res.ok) throw data;
       setEditingAdmin(null);
       setMessage({ type: 'success', text: 'Admin updated successfully' });
@@ -228,7 +245,7 @@ export default function SuperAdminPage() {
         method: 'DELETE',
         headers: getHeaders(),
       });
-      if (!res.ok) throw await res.json();
+      if (!res.ok) throw await readResponse(res);
       setMessage({ type: 'success', text: 'Admin deactivated' });
       await load();
     } catch (err) {
@@ -241,7 +258,8 @@ export default function SuperAdminPage() {
   const renderPermissions = (current, formSetter) => (
     <div className="space-y-4">
       {Object.entries(permissionsByGroup).map(([group, items]) => {
-        const allSelected = items.every(item => current.includes(item.key));
+        const selected = cleanPermissionList(current);
+        const allSelected = items.every(item => selected.includes(permissionId(item)));
         return (
           <div key={group} className="border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
@@ -257,11 +275,11 @@ export default function SuperAdminPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {items.map(item => (
-                <label key={item.key} className="flex items-center gap-2 rounded-md border border-gray-100 px-3 py-2 text-sm hover:bg-blue-50">
+                <label key={permissionId(item)} className="flex items-center gap-2 rounded-md border border-gray-100 px-3 py-2 text-sm hover:bg-blue-50">
                   <input
                     type="checkbox"
-                    checked={current.includes(item.key)}
-                    onChange={() => togglePermission(formSetter, current, item.key)}
+                    checked={selected.includes(permissionId(item))}
+                    onChange={() => togglePermission(formSetter, current, permissionId(item))}
                   />
                   <span>{item.label}</span>
                 </label>
@@ -420,8 +438,26 @@ export default function SuperAdminPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <button onClick={() => openEdit(admin)} className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md font-semibold">Edit</button>
-                            <button onClick={() => deactivateAdmin(admin)} className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md font-semibold">Deactivate</button>
+                            <div className="inline-flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                title="Edit admin"
+                                aria-label="Edit admin"
+                                onClick={() => openEdit(admin)}
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-blue-100 bg-white text-blue-600 shadow-sm hover:bg-blue-50 transition"
+                              >
+                                <i className="fas fa-edit" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Deactivate admin"
+                                aria-label="Deactivate admin"
+                                onClick={() => deactivateAdmin(admin)}
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-red-100 bg-white text-red-600 shadow-sm hover:bg-red-50 transition"
+                              >
+                                <i className="fas fa-user-slash" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
